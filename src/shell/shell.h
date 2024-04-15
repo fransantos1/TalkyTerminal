@@ -2,6 +2,9 @@
 #define SHELL_H
 
 void test();
-void cd(char *args, int arg_count);
+void cd(char *in_token);
+void ls(char *args);
+void clear();
+
 
 #endif

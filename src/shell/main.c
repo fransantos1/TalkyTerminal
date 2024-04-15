@@ -35,9 +35,6 @@ void *SendMessage(void *arg){
     return NULL;
 }
 
-
-
-
 void joinChat(){
     ThreadArgs args;
     args.isExit = 0;
