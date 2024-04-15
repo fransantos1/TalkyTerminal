@@ -101,6 +101,7 @@ void createChat(){
         printf("Choose type:\n1->private\n2->public\n");
         int option;
         scanf("%d", &option);
+        break;
     }
     ThreadArgs args;
     args.isExit = 0;

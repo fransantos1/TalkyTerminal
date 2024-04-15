@@ -20,7 +20,7 @@ void printcwd(){
 %}
 
 %start programa
-%token FIM
+%token FIM 
 %token <str> COMMAND
 %%
 
@@ -37,14 +37,17 @@ linha: '\n'
 				char* token = strdup($1);
 				strtok(token, " ");
 				if(strcmp(token, "cd") == 0){
-					
 					cd(token);
 				}else if(strcmp(token, "clear") == 0){
 					clear();
 				}else if(strcmp(token,"ls") == 0){
 					ls(token);
+				}else if(strcmp(token,"pwd") == 0){
+					pwd();
+				}else if(strcmp(token,"mkdir") == 0){
+					newmkdir(token);
 				}else{
-					test();
+					//test();
 					printf(" \033[0;31mCommand not found (p≧w≦q)\n");
 				}
 			}

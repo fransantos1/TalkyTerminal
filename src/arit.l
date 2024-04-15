@@ -5,6 +5,7 @@
 
 %}
 %%
+
 FIM             return FIM;
 [a-zA-Z0-9 ./-]+    { yylval.str =malloc(yyleng+1); 
                             strcpy(yylval.str, yytext); 

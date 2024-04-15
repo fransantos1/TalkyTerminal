@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include "shell.h"
 #include <dirent.h>
+#include <sys/stat.h>
+#
+
 
 #define MAX_COMMAND_LEN 1024
 #define MAX_ARGS 10
@@ -62,14 +65,6 @@ void ls(char *args){
         }
         args = strtok(NULL, " ");
     }
-    //if there are no args, run only ls
-    //seperate this even more
-    //if there are 2
-    //see if its -a, if not error
-    //if there is only one, see if it has /
-    //if it has / is a path
-    //if not is -a and this directory
-    //if its a path, verify if it starts from the root or not
     if(strlen(path) == 0){
         dir = opendir(".");
     }else{
@@ -100,11 +95,10 @@ void clear(){
 }
 
 
-float sleepTime = 1;
+float sleepTime = 500; //in microseconds 1ms = 1000us
 void test(){
     int x = 10;
     int y = 10;
-
     int animation[x][y];
     int counter=0;
     for(int i = 1; i<=11;i++){    
@@ -113,7 +107,7 @@ void test(){
                 animation[l][j]=counter;
                 printf("[%d]",animation[l][j]);
                 fflush(stdout);
-                usleep(500);
+                usleep(sleepTime);
             }
             printf("\n");
         }
@@ -125,22 +119,38 @@ void test(){
         
         counter = i;
     }
-
     printf("\n");
     return;
 }
+//pwd: Print working directory.
+void pwd(){
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		printf("%s\n", cwd);
+	} else {
+		perror("getcwd() error");
+	}
+}
+struct stat st = {0};
+//mkdir: Make directory.
+void newmkdir(char *name){
+    name = strtok(NULL, " ");
+    int result = mkdir(name, 0777);
+    if(result != 0){
+        perror("mkdir");
+    }
+}
+
+//rm: Remove files or directories.
+//mv: Move (rename) files or directories.
+//cp: Copy files or directories.
+//touch: Create an empty file.
+//cat: Concatenate and display files.
+//echo: Print text or variables to the terminal.
+//history: Display command history.
+
 /*
     printf("\033[A");
     printf("\r");
-
-pwd: Print working directory.
-mkdir: Make directory.
-rm: Remove files or directories.
-cp: Copy files or directories.
-mv: Move (rename) files or directories.
-touch: Create an empty file.
-cat: Concatenate and display files.
-echo: Print text or variables to the terminal.
-history: Display command history.
-
+    printf("\033[1;1H");//move cursor to x=1,y=1; so we need to create a "virtual canvas, from the y we begin or it glitches"
 */
