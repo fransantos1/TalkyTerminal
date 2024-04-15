@@ -42,8 +42,9 @@ linha: '\n'
 				}else if(strcmp(token, "clear") == 0){
 					clear();
 				}else if(strcmp(token,"ls") == 0){
-					ls();
+					ls(token);
 				}else{
+					test();
 					printf(" \033[0;31mCommand not found (p≧w≦q)\n");
 				}
 			}

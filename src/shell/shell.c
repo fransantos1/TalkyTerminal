@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include "shell.h"
 #include <dirent.h>
@@ -43,6 +43,25 @@ void cd(char *in_token){
 
 */
 void ls(char *args){
+    DIR *dir;
+    struct dirent *dp;
+    args = strtok(NULL, " ");
+    char path[1024];
+    path[0] = '\0';
+    int isALL= 0;
+    while (args != NULL) {
+        if (strchr(args, '-') != NULL) {
+            if(strchr(args, 'a') != NULL){
+                isALL = 1;
+            }else{
+                printf("parameter not recognized\n");
+                return;
+            }
+        } else {
+            strcat(path, args);
+        }
+        args = strtok(NULL, " ");
+    }
     //if there are no args, run only ls
     //seperate this even more
     //if there are 2
@@ -51,24 +70,27 @@ void ls(char *args){
     //if it has / is a path
     //if not is -a and this directory
     //if its a path, verify if it starts from the root or not
-    
-
-
-
-
-    DIR *dir;
-    struct dirent *dp;
-    dir = opendir(".");
+    if(strlen(path) == 0){
+        dir = opendir(".");
+    }else{
+        dir = opendir(path);
+    }
     if (dir == NULL) {
         perror("opendir");
-        exit(EXIT_FAILURE);
+        return;
     }
+    int counter = 0;
     while ((dp = readdir(dir)) != NULL) {
-        printf("%s ", entry->d_name);
+        if(isALL != 1 && counter <=1){
+            counter ++; 
+            continue;
+             
+        }
+        printf("%s ", dp->d_name);
+        counter ++;
     }
     printf("\n");
     closedir(dir);
-
 
 }
 
@@ -77,7 +99,40 @@ void clear(){
     system("clear");
 }
 
+
+float sleepTime = 1;
+void test(){
+    int x = 10;
+    int y = 10;
+
+    int animation[x][y];
+    int counter=0;
+    for(int i = 1; i<=11;i++){    
+        for (int l = 0; l<10;l++ ){
+            for(int j = 0;j<10;j++){
+                animation[l][j]=counter;
+                printf("[%d]",animation[l][j]);
+                fflush(stdout);
+                usleep(500);
+            }
+            printf("\n");
+        }
+        if(i != 11){
+            for(int m = 0; m<10;m++){
+            printf("\033[A");
+            }
+        }
+        
+        counter = i;
+    }
+
+    printf("\n");
+    return;
+}
 /*
+    printf("\033[A");
+    printf("\r");
+
 pwd: Print working directory.
 mkdir: Make directory.
 rm: Remove files or directories.

@@ -12,6 +12,15 @@
 #define PORT 60584
 #define MAX_MESSAGE_SIZE 50
 
+typedef struct 
+{
+    char *username[20];
+    char *message[MAX_MESSAGE_SIZE];
+} userData;
+
+
+
+
 typedef struct {
     int fd;
     int isExit;
