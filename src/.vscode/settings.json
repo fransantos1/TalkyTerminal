@@ -1,9 +1,7 @@
 {
     "files.associations": {
-        "shell.h": "c",
-        "stdlib.h": "c",
-        "string.h": "c",
-        "stdio.h": "c",
-        "typeinfo": "c"
+        "cstdlib": "c",
+        "system_error": "c",
+        "*.tcc": "c"
     }
 }

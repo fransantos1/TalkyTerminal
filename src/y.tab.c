@@ -5,7 +5,7 @@
 #define YYBYACC 1
 #define YYMAJOR 2
 #define YYMINOR 0
-#define YYPATCH 20220128
+#define YYPATCH 20221106
 
 #define YYEMPTY        (-1)
 #define yyclearin      (yychar = YYEMPTY)
@@ -32,8 +32,7 @@ typedef union YYSTYPE{
 	char* str;
 } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
-#line 6 "arit.y"
-
+#line 7 "arit.y"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -50,7 +49,7 @@ void printcwd(){
 		perror("getcwd() error");
 	}
 }
-#line 54 "y.tab.c"
+#line 53 "y.tab.c"
 
 /* compatibility with bison */
 #ifdef YYPARSE_PARAM
@@ -426,8 +425,7 @@ static YYINT  *yylexp = 0;
 
 static YYINT  *yylexemes = 0;
 #endif /* YYBTYACC */
-#line 71 "arit.y"
-
+#line 72 "arit.y"
 int yyerror(char* s){
 	printf("Erro de sintaxe\n");
 }
@@ -443,7 +441,7 @@ int main(){
 	
 }
 
-#line 447 "y.tab.c"
+#line 445 "y.tab.c"
 
 /* For use in generated program */
 #define yydepth (int)(yystack.s_mark - yystack.s_base)
@@ -1116,12 +1114,12 @@ yyreduce:
 case 3:
 #line 37 "arit.y"
 	{printcwd();}
-#line 1120 "y.tab.c"
+#line 1118 "y.tab.c"
 break;
 case 4:
 #line 39 "arit.y"
 	{exit(0);}
-#line 1125 "y.tab.c"
+#line 1123 "y.tab.c"
 break;
 case 6:
 #line 42 "arit.y"
@@ -1129,64 +1127,64 @@ case 6:
 				test();
 				printf("Command not recognized type /help for commands x3c \n");
 			}
-#line 1133 "y.tab.c"
+#line 1131 "y.tab.c"
 break;
 case 7:
 #line 49 "arit.y"
 	{cd(yystack.l_mark[0].str);}
-#line 1138 "y.tab.c"
+#line 1136 "y.tab.c"
 break;
 case 8:
 #line 51 "arit.y"
 	{clear(yystack.l_mark[0].str);}
-#line 1143 "y.tab.c"
+#line 1141 "y.tab.c"
 break;
 case 9:
 #line 53 "arit.y"
 	{shell_ls(yystack.l_mark[0].str);}
-#line 1148 "y.tab.c"
+#line 1146 "y.tab.c"
 break;
 case 10:
 #line 55 "arit.y"
 	{pwd(yystack.l_mark[0].str);}
-#line 1153 "y.tab.c"
+#line 1151 "y.tab.c"
 break;
 case 11:
 #line 57 "arit.y"
 	{ newmkdir(yystack.l_mark[0].str); }
-#line 1158 "y.tab.c"
+#line 1156 "y.tab.c"
 break;
 case 12:
 #line 59 "arit.y"
 	{ shell_touch(yystack.l_mark[0].str); }
-#line 1163 "y.tab.c"
+#line 1161 "y.tab.c"
 break;
 case 13:
 #line 61 "arit.y"
 	{ shell_echo(yystack.l_mark[0].str); }
-#line 1168 "y.tab.c"
+#line 1166 "y.tab.c"
 break;
 case 14:
 #line 63 "arit.y"
 	{ compile(yystack.l_mark[0].str); }
-#line 1173 "y.tab.c"
+#line 1171 "y.tab.c"
 break;
 case 15:
 #line 66 "arit.y"
 	{ yyval.str = yystack.l_mark[0].str; }
-#line 1178 "y.tab.c"
+#line 1176 "y.tab.c"
 break;
 case 16:
 #line 67 "arit.y"
 	{ yyval.str = strcat(strcat(yystack.l_mark[-1].str, " "), yystack.l_mark[0].str); }
-#line 1183 "y.tab.c"
+#line 1181 "y.tab.c"
 break;
 case 17:
 #line 68 "arit.y"
 	{yyval.str = "";}
-#line 1188 "y.tab.c"
+#line 1186 "y.tab.c"
 break;
-#line 1190 "y.tab.c"
+#line 1188 "y.tab.c"
     default:
         break;
     }

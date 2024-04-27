@@ -41,7 +41,6 @@ void shell_ls(char *args){
     }
 }
 
-
 /*
     ls [arg] [file]
     ls              display corrent files without including ". .." 

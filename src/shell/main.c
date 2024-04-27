@@ -10,11 +10,13 @@
 #include <unistd.h>
 #define PORT 60584
 #define MAX_MESSAGE_SIZE 50
+#define PASSWORD_SIZE 5
+#define MAX_USERNAME_SIZE 20
 
-typedef struct 
-{
-    char *username[20];
-    char *message[MAX_MESSAGE_SIZE];
+typedef struct {
+    char username[MAX_USERNAME_SIZE];
+    char message[MAX_MESSAGE_SIZE];
+    char password[PASSWORD_SIZE];
 } userData;
 
 typedef struct {
@@ -39,22 +41,32 @@ void *SendMessage(void *arg){
     }
     return NULL;
 }
+
+char* CreateUser(){
+    char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
+    if(username == NULL){
+        return NULL;
+    }
+    printf("Insert a username:");
+    scanf("%19s", username);
+    return username;
+    
+}
 void joinChat(){
     ThreadArgs args;
     args.isExit = 0;
     int status, valread;
     struct sockaddr_in serv_addr;
-    char username[10];
-    printf("Insert a username:");
-    scanf("%9s", username);
-    printf("%s\n",username);
+    userData data;
+    strcat(data.username,CreateUser());
+     if (data.username == NULL) {
+        return;
+    }
+    printf("%s\n", data.username);
 
-
-    return;
-    char ip[40];
-    strcpy(ip, "127.0.0.1");
+    char *ip = malloc(20*sizeof(char)); //! FREE IP
+    ip = "127.0.0.1";
     char buffer[1024] = { 0 };
-
     if ((args.fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
         return;
@@ -73,6 +85,8 @@ void joinChat(){
         printf("\nConnection Failed \n");
         return;
     }
+    size_t test = send(args.fd, &data, sizeof(data), 0);
+
     //Creating a thread to recieve user inputs and send them
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
@@ -99,7 +113,7 @@ void createChat(){
     ThreadArgs args;
     args.isExit = 0;
     int new_socket, fd;
-    ssize_t valread;
+    ssize_t bytes_received;
     struct sockaddr_in address;
     int opt = 1;
     socklen_t addrlen = sizeof(address);
@@ -137,12 +151,20 @@ void createChat(){
         perror("accept");
         exit(EXIT_FAILURE);
     }
+    userData data;
     printf("ACCEPTED a client\n");
+    bytes_received = recv(args.fd, buffer, sizeof(buffer), 0);
+    if (bytes_received < 0) {
+        perror("Recv failed");
+    }
+    memcpy(&data, buffer, sizeof(userData));
+    //printf("%s\n",data.username);
+     
 
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
-        valread = read(args.fd, buffer, 1024 - 1); // subtract 1 for the null
+        bytes_received = read(args.fd, buffer, 1024 - 1); // subtract 1 for the null
         printf("Recieved: %s\n", buffer);
         if(args.isExit == 1){
             break;
