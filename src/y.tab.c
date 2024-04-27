@@ -403,7 +403,6 @@ static YYINT  *yylexemes = 0;
 int yyerror(char* s){
 	printf("Erro de sintaxe\n");
 }
-
 int main(){
 	printf("\033[0;35m////////////////////////////////////////////////////////////////////////////////////////////\n");
 	printf("////////////////////////////////////////////////////////////////////////////////////////////\n");
@@ -416,7 +415,7 @@ int main(){
 	
 }
 
-#line 420 "y.tab.c"
+#line 419 "y.tab.c"
 
 /* For use in generated program */
 #define yydepth (int)(yystack.s_mark - yystack.s_base)
@@ -1089,12 +1088,12 @@ yyreduce:
 case 3:
 #line 37 "arit.y"
 	{printcwd();}
-#line 1093 "y.tab.c"
+#line 1092 "y.tab.c"
 break;
 case 4:
 #line 39 "arit.y"
 	{exit(0);}
-#line 1098 "y.tab.c"
+#line 1097 "y.tab.c"
 break;
 case 6:
 #line 42 "arit.y"
@@ -1102,49 +1101,49 @@ case 6:
 				test();
 				printf("Command not recognized type /help for commands x3c \n");
 			}
-#line 1106 "y.tab.c"
+#line 1105 "y.tab.c"
 break;
 case 7:
 #line 49 "arit.y"
 	{cd(yystack.l_mark[0].str);}
-#line 1111 "y.tab.c"
+#line 1110 "y.tab.c"
 break;
 case 8:
 #line 51 "arit.y"
 	{clear(yystack.l_mark[0].str);}
-#line 1116 "y.tab.c"
+#line 1115 "y.tab.c"
 break;
 case 9:
 #line 53 "arit.y"
 	{shell_ls(yystack.l_mark[0].str);}
-#line 1121 "y.tab.c"
+#line 1120 "y.tab.c"
 break;
 case 10:
 #line 55 "arit.y"
 	{pwd(yystack.l_mark[0].str);}
-#line 1126 "y.tab.c"
+#line 1125 "y.tab.c"
 break;
 case 11:
 #line 57 "arit.y"
 	{ newmkdir(yystack.l_mark[0].str); }
-#line 1131 "y.tab.c"
+#line 1130 "y.tab.c"
 break;
 case 12:
 #line 60 "arit.y"
 	{ yyval.str = yystack.l_mark[0].str; }
-#line 1136 "y.tab.c"
+#line 1135 "y.tab.c"
 break;
 case 13:
 #line 61 "arit.y"
 	{ yyval.str = strcat(strcat(yystack.l_mark[-1].str, " "), yystack.l_mark[0].str); }
-#line 1141 "y.tab.c"
+#line 1140 "y.tab.c"
 break;
 case 14:
 #line 62 "arit.y"
-	{ yyval.str = ""; }
-#line 1146 "y.tab.c"
+	{yyval.str = "";}
+#line 1145 "y.tab.c"
 break;
-#line 1148 "y.tab.c"
+#line 1147 "y.tab.c"
     default:
         break;
     }

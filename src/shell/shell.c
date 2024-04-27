@@ -15,7 +15,6 @@
 
 //Change directory.
 void cd(char *in_token){
-    //printf("%s\n",in_token);
     if (in_token == NULL) {
         printf("Usage: cd <directory>\n");
         return;
@@ -23,7 +22,6 @@ void cd(char *in_token){
     if (chdir(in_token) != 0) {
         perror("");
     }
-
     return;
 }
 
@@ -33,6 +31,7 @@ void shell_ls(char *args){
         printf("invalid input");
         return;
     }
+
     char path[MAX_COMMAND_LEN];
     strcpy(path, "ls ");
     strcat(path, args);
@@ -159,7 +158,11 @@ void newmkdir(char *name){
 //echo: Print text or variables to the terminal.
 //history: Display command history.
 //man : display manual (might not be possible)
-
+//chatroom 
+//autocorrect
+//auto detect
+//AI api
+//visualização de graficos
 /*
     printf("\033[A");
     printf("\r");

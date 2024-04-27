@@ -1,4 +1,3 @@
-#include "shell.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> 
@@ -18,13 +17,11 @@ typedef struct
     char *message[MAX_MESSAGE_SIZE];
 } userData;
 
-
-
-
 typedef struct {
     int fd;
     int isExit;
 } ThreadArgs;
+
 void *SendMessage(void *arg){
     char buffer[MAX_MESSAGE_SIZE];
     ThreadArgs *args = (ThreadArgs *)arg;
@@ -37,13 +34,11 @@ void *SendMessage(void *arg){
             break;
         }else if(strlen(buffer) > 0) {
             size_t test = send(client_fd, buffer, strlen(buffer), 0);
-            //printf("%u", test);
             buffer[0] = '\0';
         }   
     }
     return NULL;
 }
-
 void joinChat(){
     ThreadArgs args;
     args.isExit = 0;
@@ -51,14 +46,13 @@ void joinChat(){
     struct sockaddr_in serv_addr;
     char username[10];
     printf("Insert a username:");
-    scanf("%d\n", &username);
+    scanf("%9s", username);
+    printf("%s\n",username);
 
-    //char ip[40];
-    //REQUEST HOST IP
-    //printf("PLease Insert ChatIPV4 in the following format: xxx.xxx.xx.xx\n ->");
-    //fgets(ip, sizeof(ip), stdin);
-    //ip[strcspn(ip, "\n")] = '\0'; 
-    char *ip = "127.0.0.1";
+
+    return;
+    char ip[40];
+    strcpy(ip, "127.0.0.1");
     char buffer[1024] = { 0 };
 
     if ((args.fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -91,7 +85,6 @@ void joinChat(){
         }
     }
     pthread_join(sendMessage, NULL);
-
     // closing the connected socket
     close(args.fd);
     return ;
@@ -157,6 +150,7 @@ void createChat(){
         }
     }
     pthread_join(sendMessage, NULL);
+    
     // closing the connected socket
     close(new_socket);
     // closing the listening socket

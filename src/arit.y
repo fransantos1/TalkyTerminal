@@ -58,15 +58,14 @@ command: CD argument
         ;
 
 argument: ARGS { $$ = $1; } 
-         | argument ARGS { $$ = strcat(strcat($1, " "), $2); } // Concatenate arguments with space
-         | { $$ = ""; }
+         | argument ARGS { $$ = strcat(strcat($1, " "), $2); } 
+         | {$$ = "";}
          ;
 
 %%
 int yyerror(char* s){
 	printf("Erro de sintaxe\n");
 }
-
 int main(){
 	printf("\033[0;35m////////////////////////////////////////////////////////////////////////////////////////////\n");
 	printf("////////////////////////////////////////////////////////////////////////////////////////////\n");
