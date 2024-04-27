@@ -150,6 +150,117 @@ void newmkdir(char *name){
     }
 }
 
+
+void shell_touch(const char *args) {
+    if(strlen(args) > MAX_COMMAND_LEN - 8) {
+        printf("Input excedes character limit.\n");
+        return;
+    }
+    char command[MAX_COMMAND_LEN];
+    strcpy(command, "touch ");
+    strcat(command, args);
+    int result = system(command);
+    if(result == -1) {
+        perror("touch");
+    }
+}
+
+void shell_echo(char *args){
+    if(strlen(args)> MAX_COMMAND_LEN - 6){
+        printf("Input excedes character limit.");
+        return;
+    }
+    char command[MAX_COMMAND_LEN];
+    strcpy(command, "echo ");
+    strcat(command, args);
+    //snprintf(command, sizeof(command), "echo \"%s\"", args);
+    int result = system(command);
+    if(result == -1){
+        perror("echo");
+    }
+}
+
+struct FileType {
+    const char *extension;
+    const char *type;
+};
+
+void compile(char *args) {
+    const char *dot = strrchr(args, '.'); // Find the last occurrence of '.'
+    if (!dot) { // If there's no dot
+        printf("No extension found\n");
+        return; // No extension found
+    }
+    const char *extension = dot + 1;
+
+    // Array of extension-type mappings (all lowercase)
+    struct FileType fileTypes[] = {
+        {"c", "C file"},
+        {"java", "Java file"},
+        {"py", "Python file"},
+        {"cs", "Visual C# file"},
+        {"php", "Hypertext Preprocessor script file"},
+        {"swift", "Swift file"},
+        {"vb", "Visual Basic file"},
+        {"doc", "Word document file"},
+        {"docx", "Word document file"},
+        {"html", "HTML file"},
+        {"htm", "HTML file"},
+        {"pdf", "PDF file"},
+        {"txt", "Text file"},
+        {"rtf", "Rich Text Format file"},
+        // Add more mappings as needed
+    };
+
+    // Check if the lowercase extension matches any known type
+    for (size_t i = 0; i < sizeof(fileTypes) / sizeof(fileTypes[0]); ++i) {
+        if (strcmp(lowercaseExtension, fileTypes[i].extension) == 0) {
+            printf("This is a %s\n", fileTypes[i].type);
+            return;
+        }
+    }
+
+    // If the extension is not found in the mappings
+    printf("Unknown file type for extension '.%s'\n", lowercaseExtension);
+    /*
+       if(strcmp(extension, "c") == 0){printf("This is a C file\n");}
+    else if(strcmp(extension, "java") == 0){printf("This is a Java file\n");}
+    else if(strcmp(extension, "py") == 0){printf("This is a Python file\n");}
+    else if(strcmp(extension, "cs") == 0){printf("This is a Visual C# file\n");}
+    else if(strcmp(extension, "php") == 0){printf("This is a Hypertext Preprocessor script file\n");}
+    else if(strcmp(extension, "swift") == 0){printf("This is a Swift file\n");}
+    else if(strcmp(extension, "vb") == 0){printf("This is a Visual Basic file\n");}
+    else if(strcmp(extension, "doc") == 0 || strcmp(extension, "docx") == 0){printf("This is a Word document file\n");}
+    else if(strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0){printf("This is an HTML file\n");}
+    else if(strcmp(extension, "pdf") == 0){printf("This is a PDF file\n");}
+    else if(strcmp(extension, "txt") == 0){printf("This is a Text file\n");}
+    else if(strcmp(extension, "rtf") == 0){printf("This is a Rich Text Format file\n");}
+    else {printf("Sorry, we don't know what this extension means\n");}
+    return;
+    */
+}
+
+/*
+void echo2(char *args){
+    if(strlen(args)> MAX_COMMAND_LEN - 6){
+        printf("IMPOSSIBLE ISN'T HE JUST A QI GATHERING JUNIOR HOW COULD HE DO THIS!?!");
+        return;
+    }
+
+     if (strpbrk(input, ";|><&$`") != NULL) {
+        printf("JUNIOR YOU DARE!?!\n");
+        return;
+    }
+    char command[MAX_COMMAND_LEN];
+    strcpy(command, "echo ");
+    strcat(command, args);
+    int result = system(command);
+    if(result == -1){
+        perror("echo");
+    }
+}
+*/
+
 //rm: Remove files or directories.
 //mv: Move (rename) files or directories.
 //cp: Copy files or directories.

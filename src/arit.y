@@ -23,7 +23,7 @@ void printcwd(){
 %}
 
 %start programa
-%token <comval> FIM CD CLEAR LS PWD MKDIR
+%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE
 %token <str> ARGS 
 %type <str> argument
 %type <comval> command
@@ -55,6 +55,12 @@ command: CD argument
 			{pwd($2);}
 		| MKDIR argument
 			{ newmkdir($2); }
+		| TOUCH argument
+			{ shell_touch($2); }
+		| ECHO argument
+			{ shell_echo($2); }
+		| COMPILE argument
+			{ compile($2); }
         ;
 
 argument: ARGS { $$ = $1; } 

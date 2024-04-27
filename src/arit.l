@@ -22,6 +22,15 @@ pwd         { yylval.comval =malloc(yyleng+1);
 mkdir       { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return MKDIR;}
+touch          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return TOUCH;}
+echo          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return ECHO;}
+compile          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return COMPILE;}
 [a-zA-Z0-9./-]+    { yylval.str =malloc(yyleng+1); 
                             strcpy(yylval.str, yytext); 
                             return ARGS;}

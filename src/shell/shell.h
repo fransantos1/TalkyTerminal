@@ -8,6 +8,9 @@ void clear(char *args);
 void test();
 void pwd();
 void newmkdir(char *name);
+void shell_touch(char *args);
+void shell_echo(char *args);
+void compile(char *args);
 
 
 #endif
