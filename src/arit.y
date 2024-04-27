@@ -1,12 +1,15 @@
 %union{
+	char* comval;
 	char* str;
 }
+
 %{
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 #include "shell/shell.h"
+#include <string.h>
 extern int yylex();
 
 void printcwd(){
@@ -20,38 +23,44 @@ void printcwd(){
 %}
 
 %start programa
-%token FIM 
-%token <str> COMMAND
+%token <comval> FIM CD CLEAR LS PWD MKDIR
+%token <str> ARGS 
+%type <str> argument
+%type <comval> command
 %%
 
 programa: 
 		|	programa linha
 		;
 
-linha: '\n'
-		{ printcwd();}
-	|	FIM '\n'
-			{exit(0);}
-	| 	COMMAND
-			{	
-				char* token = strdup($1);
-				strtok(token, " ");
-				if(strcmp(token, "cd") == 0){
-					cd(token);
-				}else if(strcmp(token, "clear") == 0){
-					clear();
-				}else if(strcmp(token,"ls") == 0){
-					ls(token);
-				}else if(strcmp(token,"pwd") == 0){
-					pwd();
-				}else if(strcmp(token,"mkdir") == 0){
-					newmkdir(token);
-				}else{
-					//test();
-					printf(" \033[0;31mCommand not found (p≧w≦q)\n");
-				}
+linha: 	'\n'
+			{printcwd();}
+		| FIM '\n'
+				{exit(0);}
+		| command
+		| argument
+			{
+				test();
+				printf("Command not recognized type /help for commands x3c \n");
 			}
 	;
+
+command: CD argument
+			{cd($2);}
+		| CLEAR argument
+			{clear($2);}
+		| LS argument
+			{shell_ls($2);}
+		| PWD argument
+			{pwd($2);}
+		| MKDIR argument
+			{ newmkdir($2); }
+        ;
+
+argument: ARGS { $$ = $1; } 
+         | argument ARGS { $$ = strcat(strcat($1, " "), $2); } // Concatenate arguments with space
+         | { $$ = ""; }
+         ;
 
 %%
 int yyerror(char* s){

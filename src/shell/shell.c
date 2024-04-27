@@ -7,7 +7,6 @@
 #include "shell.h"
 #include <dirent.h>
 #include <sys/stat.h>
-#
 
 
 #define MAX_COMMAND_LEN 1024
@@ -16,85 +15,97 @@
 
 //Change directory.
 void cd(char *in_token){
-    char *token = in_token;
-    int counter = 0;
-    char*  arg;
-    while( token != NULL ) {
-        counter ++;
-        if(counter == 2){
-            arg = token;
-            break;
-        }
-        token = strtok(NULL, " ");
-    }
-    if (counter != 2) {
+    //printf("%s\n",in_token);
+    if (in_token == NULL) {
         printf("Usage: cd <directory>\n");
         return;
     }
-    if (chdir(arg) != 0) {
-            perror("cd");
-        }
+    if (chdir(in_token) != 0) {
+        perror("");
+    }
+
     return;
 }
 
 //List directory contents.
+void shell_ls(char *args){
+     if(strlen(args)> MAX_COMMAND_LEN){
+        printf("invalid input");
+        return;
+    }
+    char path[MAX_COMMAND_LEN];
+    strcpy(path, "ls ");
+    strcat(path, args);
+    int result = system(path);
+    if(result == -1){
+        perror("ls");
+    }
+}
+
+
 /*
     ls [arg] [file]
     ls              display corrent files without including ". .." 
     ls -a,          display every files including ". .." 
     ls       /.     display files on that path(if the folder starts on the root, follow root if not display files in the next folders)    
-
 */
-void ls(char *args){
-    DIR *dir;
-    struct dirent *dp;
-    args = strtok(NULL, " ");
-    char path[1024];
-    path[0] = '\0';
-    int isALL= 0;
-    while (args != NULL) {
-        if (strchr(args, '-') != NULL) {
-            if(strchr(args, 'a') != NULL){
-                isALL = 1;
-            }else{
-                printf("parameter not recognized\n");
-                return;
-            }
-        } else {
-            strcat(path, args);
-        }
-        args = strtok(NULL, " ");
-    }
-    if(strlen(path) == 0){
-        dir = opendir(".");
-    }else{
-        dir = opendir(path);
-    }
-    if (dir == NULL) {
-        perror("opendir");
-        return;
-    }
-    int counter = 0;
-    while ((dp = readdir(dir)) != NULL) {
-        if(isALL != 1 && counter <=1){
-            counter ++; 
-            continue;
-             
-        }
-        printf("%s ", dp->d_name);
-        counter ++;
-    }
-    printf("\n");
-    closedir(dir);
+// void shell_ls(char *args){
+//     DIR *dir;
+//     struct dirent *dp;
+//     args = strtok(NULL, " ");
+//     char path[1024];
+//     path[0] = '\0';
+//     int isALL= 0;
+//     while (args != NULL) {
+//         if (strchr(args, '-') != NULL) {
+//             if(strchr(args, 'a') != NULL){
+//                 isALL = 1;
+//             }else{
+//                 printf("parameter not recognized\n");
+//                 return;
+//             }
+//         } else {
+//             strcat(path, args);
+//         }
+//         args = strtok(NULL, " ");
+//     }
+//     if(strlen(path) == 0){
+//         dir = opendir(".");
+//     }else{
+//         dir = opendir(path);
+//     }
+//     if (dir == NULL) {
+//         perror("opendir");
+//         return;
+//     }
+//     int counter = 0;
+//     while ((dp = readdir(dir)) != NULL) {
+//         if(isALL != 1 && counter <=1){
+//             counter ++; 
+//           continue;     
+//         }
+//         printf("%s ", dp->d_name);
+//         counter ++;
+//     }
+//     printf("\n");
+//     closedir(dir);
+// }
 
-}
 
 //Clear the terminal screen.
-void clear(){
-    system("clear");
+void clear(char *args){
+    if(strlen(args)> MAX_COMMAND_LEN){
+        printf("invalid input");
+        return;
+    }
+    char path[MAX_COMMAND_LEN];
+    strcpy(path, "clear ");
+    strcat(path, args);
+    int result = system(path);
+    if(result == -1){
+        perror("clear");
+    }
 }
-
-
 float sleepTime = 500; //in microseconds 1ms = 1000us
 void test(){
     int x = 10;
@@ -132,9 +143,8 @@ void pwd(){
 	}
 }
 struct stat st = {0};
-//mkdir: Make directory.
+//mkdir: Make directory not finished
 void newmkdir(char *name){
-    name = strtok(NULL, " ");
     int result = mkdir(name, 0777);
     if(result != 0){
         perror("mkdir");
@@ -148,6 +158,7 @@ void newmkdir(char *name){
 //cat: Concatenate and display files.
 //echo: Print text or variables to the terminal.
 //history: Display command history.
+//man : display manual (might not be possible)
 
 /*
     printf("\033[A");
