@@ -151,7 +151,7 @@ void newmkdir(char *name){
 }
 
 
-void shell_touch(const char *args) {
+void shell_touch(char *args) {
     if(strlen(args) > MAX_COMMAND_LEN - 8) {
         printf("Input excedes character limit.\n");
         return;
@@ -185,15 +185,14 @@ struct FileType {
     const char *type;
 };
 
-void compile(char *args) {
+void compile(char *args){
     const char *dot = strrchr(args, '.'); // Find the last occurrence of '.'
     if (!dot) { // If there's no dot
-        printf("No extension found\n");
+         printf("No extension found\n");
         return; // No extension found
     }
     const char *extension = dot + 1;
-
-    // Array of extension-type mappings (all lowercase)
+    // Array of extension-type mappings
     struct FileType fileTypes[] = {
         {"c", "C file"},
         {"java", "Java file"},
@@ -212,16 +211,16 @@ void compile(char *args) {
         // Add more mappings as needed
     };
 
-    // Check if the lowercase extension matches any known type
+    // Check if the extension matches any known type
     for (size_t i = 0; i < sizeof(fileTypes) / sizeof(fileTypes[0]); ++i) {
-        if (strcmp(lowercaseExtension, fileTypes[i].extension) == 0) {
+        if (strcmp(extension, fileTypes[i].extension) == 0) {
             printf("This is a %s\n", fileTypes[i].type);
             return;
         }
     }
 
     // If the extension is not found in the mappings
-    printf("Unknown file type for extension '.%s'\n", lowercaseExtension);
+    printf("Sorry, we don't know what this extension means\n");
     /*
        if(strcmp(extension, "c") == 0){printf("This is a C file\n");}
     else if(strcmp(extension, "java") == 0){printf("This is a Java file\n");}

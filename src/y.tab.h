@@ -7,7 +7,10 @@
 #define LS 260
 #define PWD 261
 #define MKDIR 262
-#define ARGS 263
+#define TOUCH 263
+#define ECHO 264
+#define COMPILE 265
+#define ARGS 266
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
