@@ -41,6 +41,7 @@ void shell_ls(char *args){
     }
 }
 
+
 /*
     ls [arg] [file]
     ls              display corrent files without including ". .." 
@@ -184,16 +185,65 @@ struct FileType {
     const char *type;
 };
 
-void compile(char *args){
-    const char *dot = strrchr(args, '.'); // Find the last occurrence of '.'
-    if (!dot) { // If there's no dot
-         printf("No extension found\n");
-        return; // No extension found
+void compile(char *filename) {
+    DIR *dir;
+    struct dirent *entry;
+    char extension[256] = ""; // Assuming maximum extension length of 255 characters
+    char filename_copy[256]; // Assuming maximum filename length of 255 characters
+
+    if (!strlen(extension)) {
+        dir = opendir(".");
+
+        if (!dir) {
+            perror("opendir");
+            return;
+        }
+
+        while ((entry = readdir(dir)) != NULL) {
+            strcpy(filename_copy, entry->d_name); // Make a copy of the filename;
+            const char *dot_position = strrchr(filename_copy, '.');
+            const char *filename_dot = strrchr(filename, '.');
+            if (filename_dot != NULL && strcmp(filename, filename_copy) == 0){
+                size_t suffix_length = strlen(filename_dot + 1);
+                // Create a buffer to store the substring after the dot
+                char suffix[suffix_length + 1]; // +1 for null-terminator
+                strcpy(suffix, filename_dot + 1);
+                // Print the part after the dot
+                strcpy(extension, suffix);
+                break;
+            }
+            else if (dot_position != NULL) {
+                // Calculate the length of the substring before the dot
+                size_t length = dot_position - filename_copy;
+                // Create a buffer to store the substring before the dot
+                char prefix[length + 1]; // +1 for null-terminator
+                strncpy(prefix, filename_copy, length);
+                prefix[length] = '\0'; // Null-terminate the string
+                // Compare the prefix with the original filename
+                if (strcmp(filename, prefix) == 0) {
+                    // Calculate the length of the substring after the dot
+                    size_t suffix_length = strlen(dot_position + 1);
+                    // Create a buffer to store the substring after the dot
+                    char suffix[suffix_length + 1]; // +1 for null-terminator
+                    strcpy(suffix, dot_position + 1);
+                    // Print the part after the dot
+                    strcpy(extension, suffix);
+                    break;
+                }
+            }
+        }
+        
+        closedir(dir);
     }
-    const char *extension = dot + 1;
-    // Array of extension-type mappings
+
+    if (!*extension) {
+        printf("Unknown extension\n");
+        return;
+    }
+
     struct FileType fileTypes[] = {
         {"c", "C file"},
+        {"h", "H file"},
         {"java", "Java file"},
         {"py", "Python file"},
         {"cs", "Visual C# file"},
@@ -203,40 +253,26 @@ void compile(char *args){
         {"doc", "Word document file"},
         {"docx", "Word document file"},
         {"html", "HTML file"},
+        {"a", "i see the problem file"},
         {"htm", "HTML file"},
         {"pdf", "PDF file"},
         {"txt", "Text file"},
-        {"rtf", "Rich Text Format file"},
-        // Add more mappings as needed
+        {"rtf", "Rich Text Format file"}
     };
 
-    // Check if the extension matches any known type
     for (size_t i = 0; i < sizeof(fileTypes) / sizeof(fileTypes[0]); ++i) {
         if (strcmp(extension, fileTypes[i].extension) == 0) {
             printf("This is a %s\n", fileTypes[i].type);
+            printf("This file is named: %s\n", filename_copy);
             return;
         }
     }
 
-    // If the extension is not found in the mappings
-    printf("Sorry, we don't know what this extension means\n");
-    /*
-       if(strcmp(extension, "c") == 0){printf("This is a C file\n");}
-    else if(strcmp(extension, "java") == 0){printf("This is a Java file\n");}
-    else if(strcmp(extension, "py") == 0){printf("This is a Python file\n");}
-    else if(strcmp(extension, "cs") == 0){printf("This is a Visual C# file\n");}
-    else if(strcmp(extension, "php") == 0){printf("This is a Hypertext Preprocessor script file\n");}
-    else if(strcmp(extension, "swift") == 0){printf("This is a Swift file\n");}
-    else if(strcmp(extension, "vb") == 0){printf("This is a Visual Basic file\n");}
-    else if(strcmp(extension, "doc") == 0 || strcmp(extension, "docx") == 0){printf("This is a Word document file\n");}
-    else if(strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0){printf("This is an HTML file\n");}
-    else if(strcmp(extension, "pdf") == 0){printf("This is a PDF file\n");}
-    else if(strcmp(extension, "txt") == 0){printf("This is a Text file\n");}
-    else if(strcmp(extension, "rtf") == 0){printf("This is a Rich Text Format file\n");}
-    else {printf("Sorry, we don't know what this extension means\n");}
-    return;
-    */
+    printf("No matching file found\n");
 }
+
+
+
 
 /*
 void echo2(char *args){
