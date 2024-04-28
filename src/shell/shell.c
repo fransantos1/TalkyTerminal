@@ -185,11 +185,23 @@ struct FileType {
     const char *type;
 };
 
+
 void compile(char *filename) {
     DIR *dir;
     struct dirent *entry;
     char extension[256] = ""; // Assuming maximum extension length of 255 characters
     char filename_copy[256]; // Assuming maximum filename length of 255 characters
+    char extension_list[256][256]; // Array to store extensions
+    int extension_count = 0; // Counter for extensions
+    int filename_found = 0;
+    int extension_found = 0;
+    size_t suffix_found_length = 0;
+    char suffix_found[256] = "";
+
+    // Initialize extension_list
+    for (int i = 0; i < 256; ++i) {
+        extension_list[i][0] = '\0';
+    }
 
     if (!strlen(extension)) {
         dir = opendir(".");
@@ -203,6 +215,11 @@ void compile(char *filename) {
             strcpy(filename_copy, entry->d_name); // Make a copy of the filename;
             const char *dot_position = strrchr(filename_copy, '.');
             const char *filename_dot = strrchr(filename, '.');
+            if (filename_dot != NULL){   
+                suffix_found_length = strlen(filename_dot + 1);
+                strncpy(suffix_found, filename_dot + 1, suffix_found_length); // Copy the suffix to suffix_found
+                suffix_found[suffix_found_length] = '\0'; // Null-terminate the string
+            }
             if (filename_dot != NULL && strcmp(filename, filename_copy) == 0){
                 size_t suffix_length = strlen(filename_dot + 1);
                 // Create a buffer to store the substring after the dot
@@ -210,6 +227,9 @@ void compile(char *filename) {
                 strcpy(suffix, filename_dot + 1);
                 // Print the part after the dot
                 strcpy(extension, suffix);
+                // Add extension to the extension_list
+                strcpy(extension_list[extension_count++], suffix);
+                filename_found = 1;
                 break;
             }
             else if (dot_position != NULL) {
@@ -228,17 +248,14 @@ void compile(char *filename) {
                     strcpy(suffix, dot_position + 1);
                     // Print the part after the dot
                     strcpy(extension, suffix);
-                    break;
+                    // Add extension to the extension_list
+                    strcpy(extension_list[extension_count++], suffix);
+                    filename_found = 1;
                 }
             }
         }
         
         closedir(dir);
-    }
-
-    if (!*extension) {
-        printf("Unknown extension\n");
-        return;
     }
 
     struct FileType fileTypes[] = {
@@ -261,16 +278,30 @@ void compile(char *filename) {
     };
 
     for (size_t i = 0; i < sizeof(fileTypes) / sizeof(fileTypes[0]); ++i) {
-        if (strcmp(extension, fileTypes[i].extension) == 0) {
-            printf("This is a %s\n", fileTypes[i].type);
-            printf("This file is named: %s\n", filename_copy);
-            return;
-        }
+
+        if(strcmp(suffix_found, fileTypes[i].extension) == 0){extension_found = 1;}
+        for (size_t j = 0; j < extension_count; j++){
+            if (strcmp(extension_list[j], fileTypes[i].extension) == 0) {
+                 printf("This is a %s\n", fileTypes[i].type);
+                char full_filename[1024]; // Assuming maximum filename length of 1023 characters
+                const char *dot_position = strrchr(filename, '.');
+                if (dot_position != NULL) {
+                    size_t length = dot_position - filename;
+                    strncpy(full_filename, filename, length);
+                    full_filename[length] = '\0';
+                } else {
+                    strcpy(full_filename, filename);
+                }
+                strcat(full_filename, ".");
+                strcat(full_filename, fileTypes[i].extension);
+                printf("This file is named: %s\n", full_filename);
+                extension_found = 1;
+            }
+        }        
     }
-
-    printf("No matching file found\n");
+    if(filename_found == 0){printf("No matching file found\n");} 
+    if (extension_found == 0){printf("Unknown extension\n");}
 }
-
 
 
 
