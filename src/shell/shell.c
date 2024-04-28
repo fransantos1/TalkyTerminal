@@ -210,16 +210,15 @@ void compile(char *filename) {
             perror("opendir");
             return;
         }
-
+        const char *filename_dot = strrchr(filename, '.');
+        if (filename_dot != NULL){   
+            suffix_found_length = strlen(filename_dot + 1);
+            strncpy(suffix_found, filename_dot + 1, suffix_found_length); // Copy the suffix to suffix_found
+            suffix_found[suffix_found_length] = '\0'; // Null-terminate the string
+        }
         while ((entry = readdir(dir)) != NULL) {
             strcpy(filename_copy, entry->d_name); // Make a copy of the filename;
             const char *dot_position = strrchr(filename_copy, '.');
-            const char *filename_dot = strrchr(filename, '.');
-            if (filename_dot != NULL){   
-                suffix_found_length = strlen(filename_dot + 1);
-                strncpy(suffix_found, filename_dot + 1, suffix_found_length); // Copy the suffix to suffix_found
-                suffix_found[suffix_found_length] = '\0'; // Null-terminate the string
-            }
             if (filename_dot != NULL && strcmp(filename, filename_copy) == 0){
                 size_t suffix_length = strlen(filename_dot + 1);
                 // Create a buffer to store the substring after the dot
