@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h> 
 #include <unistd.h>
+#include <time.h>
 #define PORT 60584
 #define MAX_MESSAGE_SIZE 50
 #define PASSWORD_SIZE 5
@@ -23,6 +24,8 @@ typedef struct {
     int fd;
     int isExit;
 } ThreadArgs;
+
+  
 
 void *SendMessage(void *arg){
     char buffer[MAX_MESSAGE_SIZE];
@@ -104,12 +107,21 @@ void joinChat(){
     return ;
 }
 void createChat(){
-    while(1){
-        printf("Choose type:\n1->private\n2->public\n");
-        int option;
-        scanf("%d", &option);
-        break;
+    srand(time(NULL));
+    printf("Choose type:\n1->private\n2->public\n");
+    int option;
+    scanf("%d", &option);
+    int password;
+    if(option == 1){
+        
+        for(int i = 0; i<= PASSWORD_SIZE; i++ ){
+            int num = rand() % 10;
+            printf("%d - ",num);
+            password = concat(num, password);
+        }
     }
+    printf("\n%d\n",password);
+    return;
     ThreadArgs args;
     args.isExit = 0;
     int new_socket, fd;
@@ -158,8 +170,8 @@ void createChat(){
         perror("Recv failed");
     }
     memcpy(&data, buffer, sizeof(userData));
-    //printf("%s\n",data.username);
-     
+
+
 
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);

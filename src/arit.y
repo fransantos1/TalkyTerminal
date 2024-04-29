@@ -54,7 +54,7 @@ command: CD argument
 		| PWD argument
 			{pwd($2);}
 		| MKDIR argument
-			{ newmkdir($2); }
+			{newmkdir($2); }
 		| TOUCH argument
 			{ shell_touch($2); }
 		| ECHO argument
@@ -63,9 +63,12 @@ command: CD argument
 			{ compile($2); }
         ;
 
-argument: ARGS { $$ = $1; } 
-         | argument ARGS { $$ = strcat(strcat($1, " "), $2); } 
-         | {$$ = "";}
+argument: ARGS 	
+			{ $$ = $1; } 
+         | argument ARGS 
+		 	{ $$ = strcat(strcat($1, " "), $2); } 
+         | 
+		 	{$$ = "";}
          ;
 
 %%
