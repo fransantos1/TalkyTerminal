@@ -25,8 +25,6 @@ typedef struct {
     int isExit;
 } ThreadArgs;
 
-  
-
 void *SendMessage(void *arg){
     char buffer[MAX_MESSAGE_SIZE];
     ThreadArgs *args = (ThreadArgs *)arg;
@@ -88,8 +86,13 @@ void joinChat(){
         printf("\nConnection Failed \n");
         return;
     }
-    size_t test = send(args.fd, &data, sizeof(data), 0);
+    //try to get it
+    //if password necessary send password
+    //if not send name
 
+
+    size_t test = send(args.fd, &data, sizeof(data), 0);
+    
     //Creating a thread to recieve user inputs and send them
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
@@ -111,17 +114,21 @@ void createChat(){
     printf("Choose type:\n1->private\n2->public\n");
     int option;
     scanf("%d", &option);
-    int password;
-    if(option == 1){
-        
-        for(int i = 0; i<= PASSWORD_SIZE; i++ ){
-            int num = rand() % 10;
-            printf("%d - ",num);
-            password = concat(num, password);
+    char keys[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9'};
+    int keys_len = sizeof(keys) / sizeof(keys[0]); // Calculate the length of the keys array
+    char password[PASSWORD_SIZE];
+
+    if (option == 1) {
+        for (int i = 0; i < PASSWORD_SIZE; i++) { // Corrected loop condition
+            int random_index = rand() % keys_len;
+            printf("%c - ", keys[random_index]);
+            password[i] = keys[random_index];
         }
+        password[PASSWORD_SIZE] = '\0'; // Null-terminate the string
     }
-    printf("\n%d\n",password);
-    return;
+
     ThreadArgs args;
     args.isExit = 0;
     int new_socket, fd;
@@ -163,6 +170,12 @@ void createChat(){
         perror("accept");
         exit(EXIT_FAILURE);
     }
+    //athenthicate (if private, get password, if not just let in)
+    //if private ask for passwords
+    //see player can still fit in the server
+    //get player name
+
+
     userData data;
     printf("ACCEPTED a client\n");
     bytes_received = recv(args.fd, buffer, sizeof(buffer), 0);
