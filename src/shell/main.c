@@ -9,40 +9,33 @@
 #include <pthread.h> 
 #include <unistd.h>
 #include <time.h>
+#include <fcntl.h>
 #define PORT 60584
 #define MAX_MESSAGE_SIZE 50
 #define PASSWORD_SIZE 5
 #define MAX_USERNAME_SIZE 20
 
-typedef struct {
-    char username[MAX_USERNAME_SIZE];
-    char message[MAX_MESSAGE_SIZE];
-    char password[PASSWORD_SIZE];
-} userData;
 
 typedef struct {
-    int fd;
-    int isExit;
+    char username[MAX_USERNAME_SIZE];
+    int client_socket;
+    int isConnected; //0 not connected, 1 is connected
 } ThreadArgs;
 
 void *SendMessage(void *arg){
     char buffer[MAX_MESSAGE_SIZE];
     ThreadArgs *args = (ThreadArgs *)arg;
-    int client_fd = args->fd;
+    int client_socket = args->client_socket;
     while(1){
         fgets(buffer, sizeof(buffer), stdin);
         buffer[strcspn(buffer, "\n")] = '\0'; 
-        if(strcmp(buffer,"/EXIT") == 0){
-            args->isExit = 1;
-            break;
-        }else if(strlen(buffer) > 0) {
-            size_t test = send(client_fd, buffer, strlen(buffer), 0);
+        if(strlen(buffer) > 0) {
+            size_t test = send(client_socket, buffer, strlen(buffer), 0);
             buffer[0] = '\0';
         }   
     }
     return NULL;
 }
-
 char* CreateUser(){
     char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
     if(username == NULL){
@@ -55,20 +48,18 @@ char* CreateUser(){
 }
 void joinChat(){
     ThreadArgs args;
-    args.isExit = 0;
     int status, valread;
     struct sockaddr_in serv_addr;
-    userData data;
-    strcat(data.username,CreateUser());
-     if (data.username == NULL) {
-        return;
-    }
-    printf("%s\n", data.username);
+    // strcat(data.username,CreateUser());
+    //  if (data.username == NULL) {
+    //     return;
+    // }
+    // printf("%s\n", data.username);
 
     char *ip = malloc(20*sizeof(char)); //! FREE IP
     ip = "127.0.0.1";
     char buffer[1024] = { 0 };
-    if ((args.fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((args.client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
         return;
     }
@@ -81,7 +72,7 @@ void joinChat(){
             "\nInvalid address/ Address not supported \n");
         return;
     }
-    if ((status= connect(args.fd, (struct sockaddr*)&serv_addr,
+    if ((status= connect(args.client_socket, (struct sockaddr*)&serv_addr,
              sizeof(serv_addr)))< 0) {
         printf("\nConnection Failed \n");
         return;
@@ -91,59 +82,89 @@ void joinChat(){
     //if not send name
 
 
-    size_t test = send(args.fd, &data, sizeof(data), 0);
+    // size_t test = send(args.fd, &data, sizeof(data), 0);
     
     //Creating a thread to recieve user inputs and send them
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
-        valread = read(args.fd, buffer, 1024 - 1); // subtract 1 for the null
+        valread = read(args.client_socket, buffer, 1024 - 1); // subtract 1 for the null
         printf("Recieved: %s\n", buffer);
-        if(args.isExit == 1){
-            break;
-            args.isExit = 0;
-        }
     }
     pthread_join(sendMessage, NULL);
-    // closing the connected socket
-    close(args.fd);
+    close(args.client_socket);
     return ;
 }
-void createChat(){
-    srand(time(NULL));
-    printf("Choose type:\n1->private\n2->public\n");
-    int option;
-    scanf("%d", &option);
-    char keys[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
-      '6', '7', '8', '9'};
-    int keys_len = sizeof(keys) / sizeof(keys[0]); // Calculate the length of the keys array
-    char password[PASSWORD_SIZE];
 
-    if (option == 1) {
-        for (int i = 0; i < PASSWORD_SIZE; i++) { // Corrected loop condition
-            int random_index = rand() % keys_len;
-            printf("%c - ", keys[random_index]);
-            password[i] = keys[random_index];
+
+
+
+
+struct sockaddr_in address;
+int maxConns = 10;
+int server_socket;// server socket 
+int availableIndex = -1;
+int n_connected = 0;
+
+void AcceptConn(ThreadArgs *args){
+    socklen_t addrlen = sizeof(address);
+    char errorMessage[14] = "Server is full";
+    char promptMessage[21] = "Enter your username: ";
+    while(1){
+        int tempsocket;
+        if ((tempsocket = accept(server_socket, (struct sockaddr*)&address,
+            &addrlen))< 0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
         }
-        password[PASSWORD_SIZE] = '\0'; // Null-terminate the string
+        for(int i= 0; i<maxConns; i++){
+            if(args[i].isConnected == 0){
+                availableIndex = i;
+                break;
+            }
+            availableIndex = -1;
+        }
+        if(availableIndex == -1){
+            send(tempsocket, errorMessage, strlen(errorMessage), 0);
+            close(tempsocket);  
+            continue;
+        }else{
+            int status = fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK);
+            if (status == -1){
+                perror("calling fcntl");
+                close(tempsocket);
+                continue;
+            }
+            n_connected ++;
+            args[availableIndex].client_socket = tempsocket;
+            args[availableIndex].isConnected = 1;
+            // Send prompt to client
+            send(tempsocket, promptMessage, strlen(promptMessage), 0);
+        }
+    }
+}
+void createChat(){
+    
+    ThreadArgs args[maxConns]; // struct of incomming connections
+    for(int i = 0;i<maxConns;i++){
+        args[i].isConnected = 0;
+        args[i].client_socket = -1;
     }
 
-    ThreadArgs args;
-    args.isExit = 0;
-    int new_socket, fd;
     ssize_t bytes_received;
-    struct sockaddr_in address;
+    
     int opt = 1;
     socklen_t addrlen = sizeof(address);
     char buffer[1024] = { 0 };
     // Creating socket file descriptor
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+
+    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
+    
     // Forcefully attaching socket to the port 8080
-    if (setsockopt(fd, SOL_SOCKET,
+    if (setsockopt(server_socket, SOL_SOCKET,
                    SO_REUSEADDR , &opt,
                    sizeof(opt))) {
         perror("setsockopt");
@@ -152,56 +173,36 @@ void createChat(){
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
+    
     // Forcefully attaching socket to the port 8080
-    if (bind(fd, (struct sockaddr*)&address,
+    if (bind(server_socket, (struct sockaddr*)&address,
              sizeof(address))
         < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    if (listen(fd, 3) < 0) {
+    if (listen(server_socket, 3) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
-    if ((args.fd
-         = accept(fd, (struct sockaddr*)&address,
-                  &addrlen))
-        < 0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-    //athenthicate (if private, get password, if not just let in)
-    //if private ask for passwords
-    //see player can still fit in the server
-    //get player name
-
-
-    userData data;
-    printf("ACCEPTED a client\n");
-    bytes_received = recv(args.fd, buffer, sizeof(buffer), 0);
-    if (bytes_received < 0) {
-        perror("Recv failed");
-    }
-    memcpy(&data, buffer, sizeof(userData));
-
-
 
     pthread_t sendMessage;
+    pthread_t acceptClient;
+    pthread_create(&acceptClient, NULL, AcceptConn, (ThreadArgs *) &args);
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
-        bytes_received = read(args.fd, buffer, 1024 - 1); // subtract 1 for the null
-        printf("Recieved: %s\n", buffer);
-        if(args.isExit == 1){
-            break;
-            args.isExit = 0;
+        if(n_connected > 0){
+            bytes_received = read(args[0].client_socket, buffer, 1024 - 1); // subtract 1 for the null
+            //printf("waiting for message");
+            if(bytes_received > 0){
+                printf("Recieved: %s\n", buffer);
+            }
         }
     }
+    pthread_join(acceptClient, NULL);
     pthread_join(sendMessage, NULL);
-    
-    // closing the connected socket
-    close(new_socket);
-    // closing the listening socket
-    close(args.fd);
+    close(server_socket);
+    close(args[0].client_socket);
     return;
 }
 

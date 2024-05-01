@@ -7,4 +7,3 @@ shell: arit.l arit.y shell/shell.c shell/shell.h
 
 test: shell/shell.c shell/shell.h shell/main.c
 	gcc shell/main.c shell/shell.c -o test
-	./test
