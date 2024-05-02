@@ -89,10 +89,16 @@ void joinChat(){
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
         valread = read(args.client_socket, buffer, 1024 - 1); // subtract 1 for the null
+        if(valread == 0){
+            printf("Disconnected from Server\n");
+            break;
+        }
         printf("Recieved: %s\n", buffer);
+        buffer[0] = '\0';
     }
     pthread_join(sendMessage, NULL);
     close(args.client_socket);
+    exit(1);
     return ;
 }
 
