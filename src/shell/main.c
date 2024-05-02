@@ -134,29 +134,28 @@ void AcceptConn(ThreadArgs *args){
             send(tempsocket, errorMessage, strlen(errorMessage), 0);
             close(tempsocket);  
             continue;
-        }else{
-            int status = fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK);
-            if (status == -1){
-                perror("calling fcntl");
-                close(tempsocket);
-                continue;
-            }
-            n_connected ++;
-            args[availableIndex].client_socket = tempsocket;
-            args[availableIndex].isConnected = 1;
-            // Send prompt to client
-            send(tempsocket, promptMessage, strlen(promptMessage), 0);
         }
+        int status = fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK);
+        if (status == -1){
+            perror("calling fcntl");
+            close(tempsocket);
+            continue;
+        }
+        n_connected ++;
+        args[availableIndex].client_socket = tempsocket;
+        args[availableIndex].isConnected = 1;
+        // Send prompt to client
+        send(tempsocket, promptMessage, strlen(promptMessage), 0);
+    
     }
 }
 void createChat(){
-    
+    //insert here the rest of the code to choose if the server is private, max people connected, etc(already made but in discord)
     ThreadArgs args[maxConns]; // struct of incomming connections
     for(int i = 0;i<maxConns;i++){
         args[i].isConnected = 0;
         args[i].client_socket = -1;
     }
-
     ssize_t bytes_received;
     
     int opt = 1;
@@ -198,11 +197,14 @@ void createChat(){
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
         if(n_connected > 0){
+            //use select to see if there are any incoming messages on the args[] array
+            //display the args.name before
             bytes_received = read(args[0].client_socket, buffer, 1024 - 1); // subtract 1 for the null
-            //printf("waiting for message");
             if(bytes_received > 0){
                 printf("Recieved: %s\n", buffer);
             }
+            //prolly a for loop with a send to every args[]? dk if there is a broadcast function or smth
+            //after send the message to everyone WITH the name
         }
     }
     pthread_join(acceptClient, NULL);
