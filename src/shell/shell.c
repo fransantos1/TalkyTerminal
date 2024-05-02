@@ -152,7 +152,7 @@ void newmkdir(char *name){
     }
 }
 
-/*
+
 void shell_touch(char *args) {
     if(strlen(args) > MAX_COMMAND_LEN - 8) {
         printf("Input excedes character limit.\n");
@@ -165,86 +165,7 @@ void shell_touch(char *args) {
     if(result == -1) {
         perror("touch");
     }
-}*/
-
-void shell_touch(char *args) {
-    // Check if the length of the arguments exceeds the maximum command length
-    if(strlen(args) > MAX_COMMAND_LEN - 8) {
-        printf("Input exceeds character limit.\n");
-        return;
-    }
-    // Open or create the file with write-only mode
-    int fd = open(args, O_WRONLY | O_CREAT, 0644);
-    if(fd == -1) {
-        perror("open");
-        return;
-    }
-    // Close the file descriptor
-    if(close(fd) == -1) {
-        perror("close");
-        return;
-    }
-    printf("File '%s' created or modified.\n", args);
 }
-/*
-void shell_touch(char *args) {
-    if(strlen(args) > MAX_COMMAND_LEN - 8) {
-        printf("Input exceeds character limit.\n");
-        return;
-    }
-
-    // Extract options from args
-    char options[4] = ""; // Assuming maximum of 3 options plus null terminator
-    char filename[MAX_COMMAND_LEN] = "";
-    int i = 0;
-    int j = 0;
-    while(args[i] != '\0') {
-        if(args[i] == '-') {
-            // Found an option
-            options[j++] = args[++i];
-        } else {
-            // Found part of the filename
-            filename[strlen(filename)] = args[i];
-        }
-        i++;
-    }
-
-    // Check if -c option is present
-    if(strchr(options, 'c') != NULL) {
-        printf("No files will be created.\n");
-        return;
-    }
-
-    // Open or create the file with write-only mode
-    int fd = open(filename, O_WRONLY | O_CREAT, 0644);
-    if(fd == -1) {
-        perror("open");
-        return;
-    }
-
-    // Close the file descriptor
-    if(close(fd) == -1) {
-        perror("close");
-        return;
-    }
-
-    printf("File '%s' created or modified.\n", filename);
-
-    // Check for options to change access and modification times
-    if(strchr(options, 'd') != NULL) {
-        struct utimbuf ut;
-        ut.actime = ut.modtime = time(NULL);
-        if(utime(filename, &ut) == -1) {
-            perror("utime");
-            return;
-        }
-        printf("Access time of file '%s' changed.\n", filename);
-    }
-
-    if(strchr(options, 'f') != NULL) {
-        printf("Option -f ignored.\n");
-    }
-}*/
 
 void shell_echo(char *args){
     if(strlen(args)> MAX_COMMAND_LEN - 6){
@@ -424,3 +345,86 @@ void echo2(char *args){
     printf("\r");
     printf("\033[1;1H");//move cursor to x=1,y=1; so we need to create a "virtual canvas, from the y we begin or it glitches"
 */
+
+
+
+
+/*
+void shell_touch(char *args) {
+    // Check if the length of the arguments exceeds the maximum command length
+    if(strlen(args) > MAX_COMMAND_LEN - 8) {
+        printf("Input exceeds character limit.\n");
+        return;
+    }
+    // Open or create the file with write-only mode
+    int fd = open(args, O_WRONLY | O_CREAT, 0644);
+    if(fd == -1) {
+        perror("open");
+        return;
+    }
+    // Close the file descriptor
+    if(close(fd) == -1) {
+        perror("close");
+        return;
+    }
+    printf("File '%s' created or modified.\n", args);
+}*/
+/*
+void shell_touch(char *args) {
+    if(strlen(args) > MAX_COMMAND_LEN - 8) {
+        printf("Input exceeds character limit.\n");
+        return;
+    }
+
+    // Extract options from args
+    char options[4] = ""; // Assuming maximum of 3 options plus null terminator
+    char filename[MAX_COMMAND_LEN] = "";
+    int i = 0;
+    int j = 0;
+    while(args[i] != '\0') {
+        if(args[i] == '-') {
+            // Found an option
+            options[j++] = args[++i];
+        } else {
+            // Found part of the filename
+            filename[strlen(filename)] = args[i];
+        }
+        i++;
+    }
+
+    // Check if -c option is present
+    if(strchr(options, 'c') != NULL) {
+        printf("No files will be created.\n");
+        return;
+    }
+
+    // Open or create the file with write-only mode
+    int fd = open(filename, O_WRONLY | O_CREAT, 0644);
+    if(fd == -1) {
+        perror("open");
+        return;
+    }
+
+    // Close the file descriptor
+    if(close(fd) == -1) {
+        perror("close");
+        return;
+    }
+
+    printf("File '%s' created or modified.\n", filename);
+
+    // Check for options to change access and modification times
+    if(strchr(options, 'd') != NULL) {
+        struct utimbuf ut;
+        ut.actime = ut.modtime = time(NULL);
+        if(utime(filename, &ut) == -1) {
+            perror("utime");
+            return;
+        }
+        printf("Access time of file '%s' changed.\n", filename);
+    }
+
+    if(strchr(options, 'f') != NULL) {
+        printf("Option -f ignored.\n");
+    }
+}*/
