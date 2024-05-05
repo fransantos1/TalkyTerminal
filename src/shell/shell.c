@@ -199,6 +199,7 @@ void compile(char *filename) {
     int extension_found = 0;
     size_t suffix_found_length = 0;
     char suffix_found[256] = "";
+    char command[MAX_COMMAND_LEN];
 
     // Initialize extension_list
     for (int i = 0; i < 256; ++i) {
@@ -293,9 +294,49 @@ void compile(char *filename) {
                 } else {
                     strcpy(full_filename, filename);
                 }
+                char part[1024]; // Assuming maximum filename length of 1023 characters
+                strcpy(part, full_filename);
                 strcat(full_filename, ".");
                 strcat(full_filename, fileTypes[i].extension);
                 printf("This file is named: %s\n", full_filename);
+                int result = 0;
+                if(strcmp(fileTypes[i].extension, "c") == 0){
+                    strcpy(command, "gcc -o ");
+                    strcat(command, part);
+                    strcat(command, " ");
+                    strcat(command, part);
+                    strcat(command, ".c");
+                    result = system(command);
+                }else if(strcmp(fileTypes[i].extension, "cs") == 0){
+                    strcpy(command, "mcs -out:");
+                    strcat(command, part);
+                    strcat(command, ".exe ");
+                    strcat(command, part);
+                    strcat(command, ".cs");
+                    result = system(command);
+                }else if(strcmp(fileTypes[i].extension, "java") == 0){
+                    strcpy(command, "javac ");
+                    strcat(command, part);
+                    strcat(command, ".java");
+                    result = system(command);
+                }else if(strcmp(fileTypes[i].extension, "py") == 0){
+                    strcpy(command, "python ");
+                    strcat(command, part);
+                    strcat(command, ".py");
+                    result = system(command);
+                    if(result == -1){
+                        strcpy(command, "python ");
+                        strcat(command, part);
+                        strcat(command, ".py");
+                        int result = system(command);
+                    }
+                }
+                if(result == -1){
+                    printf("Compilation failed\n");
+                } else {
+                    printf("Compilation successful\n");
+                }
+                
                 extension_found = 1;
             }
         }        
