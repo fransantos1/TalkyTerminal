@@ -14,20 +14,28 @@
 
 
 #define PORT 60584
-#define MAX_MESSAGE_SIZE 100
 #define PASSWORD_SIZE 5
 #define MAX_USERNAME_SIZE 10
 #define MAX_SERVER_SIZE 100
 #define BUFFER_SIZE 1024
+
+#define MAX_MESSAGE_SIZE 100
 #define MESSAGE_HISTORY_SIZE 80
 
 char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE][MAX_MESSAGE_SIZE];
 
 typedef struct {
     char username[MAX_USERNAME_SIZE];
+    int status;//0-needs auth/ 1-needs username/2-connected
     int client_socket;
-    int isConnected; //0 not connected, 1 is connected
+    int isConnected;//0 not connected, 1 is connected
 } ThreadArgs;
+
+typedef struct{
+    int type;// 0-needs auth/ 1-needs username/ 2-sending history /3-message
+    char msg[MAX_MESSAGE_SIZE];
+} Servermsg;
+
 
 void *SendMessage(void *arg){
     char buffer[MAX_MESSAGE_SIZE];
@@ -45,6 +53,25 @@ void *SendMessage(void *arg){
     }
     return NULL;
 }
+Servermsg parse_server_message(char *buffer, size_t buffer_size) {
+    Servermsg msg;
+    msg.msg[0] = '\0';
+    if (buffer_size < sizeof(int)) {
+        msg.type = -1;
+        return msg;
+    }
+    memcpy(&msg.type, buffer, sizeof(int));
+    // Ensure null-termination of the buffer
+    if (buffer_size > sizeof(int)) {
+        strcpy(msg.msg, buffer + sizeof(int));
+    }
+    // Clear the buffer using buffer_size, not sizeof(buffer)
+    memset(buffer, 0, buffer_size);
+
+    return msg;
+}
+
+
 char* CreateUser(){
     char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
     if(username == NULL){
@@ -59,11 +86,7 @@ void joinChat(){
     ThreadArgs args;
     int status, valread;
     struct sockaddr_in serv_addr;
-    // strcat(data.username,CreateUser());
-    //  if (data.username == NULL) {
-    //     return;
-    // }
-    // printf("%s\n", data.username);
+    char* username = CreateUser();
 
     char *ip = malloc(20*sizeof(char)); //! FREE IP
     ip = "127.0.0.1";
@@ -86,14 +109,7 @@ void joinChat(){
         printf("\nConnection Failed \n");
         return;
     }
-    //try to get it
-    //if password necessary send password
-    //if not send name
 
-
-    // size_t test = send(args.fd, &data, sizeof(data), 0);
-    
-    //Creating a thread to recieve user inputs and send them
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     while(1){
@@ -102,8 +118,27 @@ void joinChat(){
             printf("Disconnected from Server\n");
             break;
         }
-        printf("%s\n", buffer);
-        buffer[0] = '\0';
+        Servermsg msg = parse_server_message(buffer, valread);
+        if(msg.msg[0] != '\0'){
+            printf("%s\n",msg.msg);
+        }
+        switch(msg.type){
+            case 0:
+                printf("Whats the password?\n");
+                //ask for password
+                break;
+            case 1:
+                size_t test = send(args.client_socket, username, strlen(username), 0);
+                //send username
+                break;
+            case 2:
+                
+                //recieve history
+                break;
+        }
+
+        memset(buffer, 0, sizeof(buffer));
+
     }
     pthread_join(sendMessage, NULL);
     close(args.client_socket);
@@ -111,7 +146,14 @@ void joinChat(){
     return ;
 }
 
+/*Conn steps;
+if server has password
+    send password
+send username
 
+
+
+*/
 
 
 
@@ -120,12 +162,12 @@ int maxConns = 5; //cannot exceed 1023
 int server_socket;// server socket 
 int availableIndex = -1;
 int n_connected = 0;
+int isPrivate = 0; //0 no, 1 is
 
 void *AcceptConn(void *args){
     ThreadArgs *threadArgs = (ThreadArgs *)args;
     socklen_t addrlen = sizeof(address);
     char errorMessage[14] = "Server is full";
-    char promptMessage[21] = "Enter your username: ";
     while(1){
         int tempsocket;
         if ((tempsocket = accept(server_socket, (struct sockaddr*)&address,&addrlen))< 0){
@@ -144,18 +186,28 @@ void *AcceptConn(void *args){
             close(tempsocket);  
             continue;
         }
-        int status = fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK);
-        if (status == -1){
+        
+        if (fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK) == -1){
             perror("calling fcntl");
             close(tempsocket);
             continue;
         }
+        Servermsg msg;
+        msg.type = 1;
+        threadArgs[availableIndex].status = 1;
+        if(isPrivate == 1){
+            threadArgs[availableIndex].status = 0;
+            msg.type = 0;
+        }
         n_connected ++;
         threadArgs[availableIndex].client_socket = tempsocket;
         threadArgs[availableIndex].isConnected = 1;
+        send(tempsocket, &msg, sizeof(msg), 0);
         memset(threadArgs[availableIndex].username, 0, sizeof(threadArgs[availableIndex].username));
+        //if is private, ask for password
+
         // Send prompt to client
-        send(tempsocket, promptMessage, strlen(promptMessage), 0);
+        //send(tempsocket, promptMessage, strlen(promptMessage), 0);
     }
             return NULL;
 
@@ -164,30 +216,52 @@ void *AcceptConn(void *args){
 
 
 void createChat(){
+    srand(time(NULL));
+    printf("Choose type:\n1->private\n2->public\n");
+    int option;
+    scanf("%d", &option);
+    char keys[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+     'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5',
+      '6', '7', '8', '9'};
+    int keys_len = sizeof(keys) / sizeof(keys[0]); // Calculate the length of the keys array
+    char password[PASSWORD_SIZE];
+    if (option == 1) {
+        printf("Password: ");
+        for (int i = 0; i < PASSWORD_SIZE; i++) { // Corrected loop condition
+            isPrivate=1;
+            int random_index = rand() % keys_len;
+            printf("%c", keys[random_index]);
+            password[i] = keys[random_index];
+        }
+        printf("\n");
+        password[PASSWORD_SIZE] = '\0'; // Null-terminate the string
+    }
     //insert here the rest of the code to choose if the server is private, max people connected, etc(already made but in discord)
-    ThreadArgs args[maxConns]; // struct of incomming connections
+
+
+    ThreadArgs args[maxConns+1]; // struct of incomming connections +1 for own 
     //use epool()?
     char *username = CreateUser();
-    printf("%s\n",username);
-
     int flags = fcntl(0, F_GETFL, 0);
     fcntl(0, F_SETFL, flags | O_NONBLOCK);// NOT THE BEST WAY is my guess
-
     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
             MESSAGE_HISTORY[i][0] = '\0';
     }
+    args[maxConns].isConnected = 1;
+    args[maxConns].client_socket = 0;
+    strcpy(args[maxConns].username, username);
+    args[maxConns].status = 2;
+
     for(int i = 0;i<maxConns;i++){
         args[i].isConnected = 0;
         args[i].client_socket = -1;
+        args[i].status = -1;
     }
     ssize_t bytes_received;
-    
     int opt = 1;
     socklen_t addrlen = sizeof(address);
     char buffer[MAX_MESSAGE_SIZE] = { 0 };
-
     // Creating socket file descriptor
-
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
@@ -218,53 +292,84 @@ void createChat(){
     pthread_t sendMessage;
     pthread_t acceptClient;
     pthread_create(&acceptClient, NULL, AcceptConn, (void*) &args);
-    //pthread_create(&sendMessage, NULL,SendMessage,(void *)&args);
     char rec_message[MAX_MESSAGE_SIZE];
     int history_index = 0;
     while(1){
         memset(buffer, 0, sizeof(buffer));
         memset(rec_message, 0, sizeof(rec_message));
-        bytes_received = read(0, buffer, sizeof(buffer));
-        if (bytes_received > 0) {
-            printf("%s\n",buffer);
-            //snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", username, buffer);
-        } 
-
-        for(int i = 0; i<maxConns; i++){
+        for(int i = 0; i<=maxConns; i++){
                 if(args[i].isConnected == 0){continue;}// if the index doesnt have a user
-                bytes_received = read(args[i].client_socket, buffer, MAX_MESSAGE_SIZE - 1); // subtract 1 for the null
-                if(bytes_received == -1){continue;}// if the index sayed nothing, continue
-
-                if(bytes_received > sizeof(char)*MAX_MESSAGE_SIZE){
-                    send(args[i].client_socket, "Message Too Big", strlen("Message Too Big"), 0);
-                    continue;
-                }
+                bytes_received = read(args[i].client_socket, buffer, MAX_MESSAGE_SIZE - 1);
+                if (bytes_received > 0 && buffer[bytes_received - 1] == '\n')
+                    buffer[bytes_received - 1] = '\0';
+                if(bytes_received == -1){continue;}
+                
                 if(bytes_received == 0){ // if disconnected
-                    printf("%s\n",args[i].username);
                     snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m left", args[i].username);
                     memset(args[i].username, 0, sizeof(args[i].username));
                     n_connected --;
                     args[i].isConnected = 0;
-                }else if (args[i].username[0] == '\0') { // if it did not have a username
-                    if(bytes_received > MAX_USERNAME_SIZE* sizeof(char)-1){ 
-                        send(args[i].client_socket, "Username too big", strlen("Username too big"), 0);
+                }
+                if(bytes_received > sizeof(char)*MAX_MESSAGE_SIZE){
+                    send(args[i].client_socket, "Message Too Big", strlen("Message Too Big "), 0);
+                    continue;
+                }
+                switch(args[i].status){
+                    case 0:
+                    Servermsg msg;
+                        if( strcmp(password, buffer) != 0)
+                        {
+                            msg.type = -1;
+                            strcpy(msg.msg, "wrong Password");
+                            send(args[i].client_socket, &msg, sizeof(msg), 0);
+                            close(args[i].client_socket);
+                            memset(args[i].username, 0, sizeof(args[i].username));
+                            n_connected --;
+                            args[i].isConnected = 0;
+
+                            continue;
+                            break;
+                        }
+                        msg.msg[0] = '\0';
+                        args[i].status = 1;
+                        //compare incoming password
+                        msg.type = 1;
+                        send(args[i].client_socket, &msg, sizeof(msg), 0);
                         continue;
-                    }
-                    memcpy(args[i].username, buffer, bytes_received*sizeof(char));
-                    snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m Joined", args[i].username);
-                } else {
-                    snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", args[i].username, buffer);
+                        break;
+                    case 1:
+                        if(bytes_received > MAX_USERNAME_SIZE* sizeof(char)-1){ 
+                            send(args[i].client_socket, "Username too big choose another one", strlen("Username too big choose another one"), 0);
+                            continue;
+                            break;
+                        }
+                        //send history
+                        //read username
+                        memcpy(args[i].username, buffer, bytes_received*sizeof(char));
+                        snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m Joined", args[i].username);
+                        args[i].status = 2;
+                        break;
+                    case 2:
+                        //read message
+                        snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", args[i].username, buffer);
+
+                        break;
                 }
                 strcpy(MESSAGE_HISTORY[history_index], rec_message);
-
                 history_index ++;
-            printf("%s\n", rec_message);
-            if(rec_message[0] == '\0'){continue;} // if there are no messages
+            
+            if(rec_message[0] == '\0'){continue;} // if there are no message
+            Servermsg msg;
+            msg.type = 3;
+            strcpy(msg.msg, rec_message);
+            for(int n = 0; n<=maxConns;n++){
+                if(n == maxConns){//Print self
+                    printf("%s\n", msg.msg);
+                    continue;
+                }
+                if(args[n].isConnected == 0 && args[n].status == 2){continue;}
 
-            for(int n = 0; n<maxConns;n++){
-                if(args[n].isConnected == 0){continue;}
-
-                send(args[n].client_socket, rec_message, strlen(rec_message), 0);
+                send(args[n].client_socket,&msg, sizeof(msg), 0);
             }
 
             if(history_index == 10){
