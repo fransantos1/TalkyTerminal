@@ -31,6 +31,10 @@ echo          { yylval.comval =malloc(yyleng+1);
 compile          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return COMPILE;}
+talky          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return TALKY;}
+                            
 [a-zA-Z0-9./-]+    { yylval.str =malloc(yyleng+1); 
                             strcpy(yylval.str, yytext); 
                             return ARGS;}

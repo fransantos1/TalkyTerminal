@@ -23,7 +23,7 @@ void printcwd(){
 %}
 
 %start programa
-%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE
+%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY
 %token <str> ARGS 
 %type <str> argument
 %type <comval> command
@@ -61,6 +61,9 @@ command: CD argument
 			{ shell_echo($2); }
 		| COMPILE argument
 			{ compile($2); }
+		| TALKY argument
+			{}
+		
         ;
 
 argument: ARGS 	
@@ -75,6 +78,7 @@ argument: ARGS
 int yyerror(char* s){
 	printf("Erro de sintaxe\n");
 }
+
 int main(){
 	printf("\033[0;35m////////////////////////////////////////////////////////////////////////////////////////////\n");
 	printf("////////////////////////////////////////////////////////////////////////////////////////////\n");
