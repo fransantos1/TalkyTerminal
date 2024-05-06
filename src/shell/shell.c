@@ -105,6 +105,21 @@ void newmkdir(char *name){
     }
 }
 
+void shell_cp(const char *args){
+    if(strlen(args)> MAX_COMMAND_LEN - 8){
+        printf("Input excedes character limit.\n");
+        return;
+    }
+
+    char command[MAX_COMMAND_LEN];
+    strcpy(command, "cp ");
+    strcat(command, args);
+
+    int result = system(command);
+    if(result == -1){
+        perror("cp");
+    }
+}
 
 void shell_touch(char *args) {
     if(strlen(args) > MAX_COMMAND_LEN - 8) {
