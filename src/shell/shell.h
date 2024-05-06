@@ -13,6 +13,6 @@ void shell_touch(char *args);
 void shell_echo(char *args);
 void compile(char *args);
 void talky(char *args);
-
+void shell_cp(const char *args);
 
 #endif
