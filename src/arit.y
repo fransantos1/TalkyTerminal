@@ -62,7 +62,7 @@ command: CD argument
 		| COMPILE argument
 			{ compile($2); }
 		| TALKY argument
-			{}
+			{talky($2);}
 		
         ;
 

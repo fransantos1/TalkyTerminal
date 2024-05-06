@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-#include "shell.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#include "shell.h"
+#include "ChatRoom.h"
+
 //#include <utime.h>
 
 #define MAX_COMMAND_LEN 1024
@@ -42,56 +45,6 @@ void shell_ls(char *args){
         perror("ls");
     }
 }
-
-
-/*
-    ls [arg] [file]
-    ls              display corrent files without including ". .." 
-    ls -a,          display every files including ". .." 
-    ls       /.     display files on that path(if the folder starts on the root, follow root if not display files in the next folders)    
-*/
-// void shell_ls(char *args){
-//     DIR *dir;
-//     struct dirent *dp;
-//     args = strtok(NULL, " ");
-//     char path[1024];
-//     path[0] = '\0';
-//     int isALL= 0;
-//     while (args != NULL) {
-//         if (strchr(args, '-') != NULL) {
-//             if(strchr(args, 'a') != NULL){
-//                 isALL = 1;
-//             }else{
-//                 printf("parameter not recognized\n");
-//                 return;
-//             }
-//         } else {
-//             strcat(path, args);
-//         }
-//         args = strtok(NULL, " ");
-//     }
-//     if(strlen(path) == 0){
-//         dir = opendir(".");
-//     }else{
-//         dir = opendir(path);
-//     }
-//     if (dir == NULL) {
-//         perror("opendir");
-//         return;
-//     }
-//     int counter = 0;
-//     while ((dp = readdir(dir)) != NULL) {
-//         if(isALL != 1 && counter <=1){
-//             counter ++; 
-//           continue;     
-//         }
-//         printf("%s ", dp->d_name);
-//         counter ++;
-//     }
-//     printf("\n");
-//     closedir(dir);
-// }
-
 
 //Clear the terminal screen.
 void clear(char *args){
@@ -182,12 +135,45 @@ void shell_echo(char *args){
     }
 }
 
+/*
+    talky [arg]
+    talky  -h      host
+    talky  -c      connect
+*/
+
+void talky(char *args){
+    if(args[0] == '\0'){
+        printf("Not recognized:\n\n\033[31mtalky  [arg]\ntalky  -h      host\ntalky  -c      connect\033[0m\n");
+        return;
+    }
+    char *ptr = strtok(args, " ");
+
+
+
+
+
+    while (ptr != NULL) {
+        if (strchr(ptr, '-') != NULL) {
+            if(strchr(ptr, 'h') != NULL){
+                createChat();
+            }else if(strchr(ptr, 'c') != NULL){
+
+            }else{
+                printf("parameter not recognized\n");
+                return;
+            }
+        }
+        ptr = strtok(NULL, " ");
+    }
+    return;
+    //    memmove(buffer, buffer + 1, strlen(buffer));
+
+}
+
 struct FileType {
     const char *extension;
     const char *type;
 };
-
-
 void compile(char *filename) {
     DIR *dir;
     struct dirent *entry;
@@ -260,6 +246,9 @@ void compile(char *filename) {
         closedir(dir);
     }
 
+
+
+
     struct FileType fileTypes[] = {
         {"c", "C file"},
         {"h", "H file"},
@@ -278,7 +267,6 @@ void compile(char *filename) {
         {"txt", "Text file"},
         {"rtf", "Rich Text Format file"}
     };
-
     for (size_t i = 0; i < sizeof(fileTypes) / sizeof(fileTypes[0]); ++i) {
 
         if(strcmp(suffix_found, fileTypes[i].extension) == 0){extension_found = 1;}
@@ -345,127 +333,3 @@ void compile(char *filename) {
     if (extension_found == 0){printf("Unknown extension\n");}
 }
 
-
-
-/*
-void echo2(char *args){
-    if(strlen(args)> MAX_COMMAND_LEN - 6){
-        printf("IMPOSSIBLE ISN'T HE JUST A QI GATHERING JUNIOR HOW COULD HE DO THIS!?!");
-        return;
-    }
-
-     if (strpbrk(input, ";|><&$`") != NULL) {
-        printf("JUNIOR YOU DARE!?!\n");
-        return;
-    }
-    char command[MAX_COMMAND_LEN];
-    strcpy(command, "echo ");
-    strcat(command, args);
-    int result = system(command);
-    if(result == -1){
-        perror("echo");
-    }
-}
-*/
-
-//rm: Remove files or directories.
-//mv: Move (rename) files or directories.
-//cp: Copy files or directories.
-//touch: Create an empty file.
-//cat: Concatenate and display files.
-//echo: Print text or variables to the terminal.
-//history: Display command history.
-//man : display manual (might not be possible)
-//chatroom 
-//autocorrect
-//auto detect
-//AI api
-//visualização de graficos
-/*
-    printf("\033[A");
-    printf("\r");
-    printf("\033[1;1H");//move cursor to x=1,y=1; so we need to create a "virtual canvas, from the y we begin or it glitches"
-*/
-
-
-
-
-/*
-void shell_touch(char *args) {
-    // Check if the length of the arguments exceeds the maximum command length
-    if(strlen(args) > MAX_COMMAND_LEN - 8) {
-        printf("Input exceeds character limit.\n");
-        return;
-    }
-    // Open or create the file with write-only mode
-    int fd = open(args, O_WRONLY | O_CREAT, 0644);
-    if(fd == -1) {
-        perror("open");
-        return;
-    }
-    // Close the file descriptor
-    if(close(fd) == -1) {
-        perror("close");
-        return;
-    }
-    printf("File '%s' created or modified.\n", args);
-}*/
-/*
-void shell_touch(char *args) {
-    if(strlen(args) > MAX_COMMAND_LEN - 8) {
-        printf("Input exceeds character limit.\n");
-        return;
-    }
-
-    // Extract options from args
-    char options[4] = ""; // Assuming maximum of 3 options plus null terminator
-    char filename[MAX_COMMAND_LEN] = "";
-    int i = 0;
-    int j = 0;
-    while(args[i] != '\0') {
-        if(args[i] == '-') {
-            // Found an option
-            options[j++] = args[++i];
-        } else {
-            // Found part of the filename
-            filename[strlen(filename)] = args[i];
-        }
-        i++;
-    }
-
-    // Check if -c option is present
-    if(strchr(options, 'c') != NULL) {
-        printf("No files will be created.\n");
-        return;
-    }
-
-    // Open or create the file with write-only mode
-    int fd = open(filename, O_WRONLY | O_CREAT, 0644);
-    if(fd == -1) {
-        perror("open");
-        return;
-    }
-
-    // Close the file descriptor
-    if(close(fd) == -1) {
-        perror("close");
-        return;
-    }
-
-    printf("File '%s' created or modified.\n", filename);
-
-    // Check for options to change access and modification times
-    if(strchr(options, 'd') != NULL) {
-        struct utimbuf ut;
-        ut.actime = ut.modtime = time(NULL);
-        if(utime(filename, &ut) == -1) {
-            perror("utime");
-            return;
-        }
-        printf("Access time of file '%s' changed.\n", filename);
-    }
-
-    if(strchr(options, 'f') != NULL) {
-        printf("Option -f ignored.\n");
-    }
-}*/
