@@ -63,7 +63,8 @@ command: CD argument
 			{ compile($2); }
 		| TALKY argument
 			{talky($2);}
-		
+		| CP argument
+			{shell_cp($2); }
         ;
 
 argument: ARGS 	

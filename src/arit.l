@@ -34,6 +34,9 @@ compile          { yylval.comval =malloc(yyleng+1);
 talky          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return TALKY;}
+cp          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return CP;}
                             
 [a-zA-Z0-9./-]+    { yylval.str =malloc(yyleng+1); 
                             strcpy(yylval.str, yytext); 
