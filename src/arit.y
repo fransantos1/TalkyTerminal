@@ -23,7 +23,7 @@ void printcwd(){
 %}
 
 %start programa
-%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP
+%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP LIFE
 %token <str> ARGS 
 %type <str> argument
 %type <comval> command
@@ -48,7 +48,7 @@ linha: 	'\n'
 command: CD argument
 			{cd($2);}
 		| CLEAR argument
-			{clear($2);}
+			{shell_clear($2);}
 		| LS argument
 			{shell_ls($2);}
 		| PWD argument
@@ -62,7 +62,12 @@ command: CD argument
 		| COMPILE argument
 			{ compile($2); }
 		| TALKY argument
-			{talky($2);}
+			{
+				talky($2);
+			 	printf("\n");
+			}
+		| LIFE argument
+			{life($2);}
 		| CP argument
 			{shell_cp($2); }
         ;

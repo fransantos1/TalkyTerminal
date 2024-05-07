@@ -11,7 +11,9 @@
 #define ECHO 264
 #define COMPILE 265
 #define TALKY 266
-#define ARGS 267
+#define CP 267
+#define LIFE 268
+#define ARGS 269
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1

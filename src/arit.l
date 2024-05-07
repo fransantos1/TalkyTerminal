@@ -34,6 +34,9 @@ compile          { yylval.comval =malloc(yyleng+1);
 talky          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return TALKY;}
+life          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return LIFE;}
 cp          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return CP;}

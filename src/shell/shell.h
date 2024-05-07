@@ -5,7 +5,7 @@
 void test();
 void cd(char *in_token);
 void shell_ls(char *args);
-void clear(char *args);
+void shell_clear(char *args);
 void test();
 void pwd();
 void newmkdir(char *name);
@@ -14,5 +14,6 @@ void shell_echo(char *args);
 void compile(char *args);
 void talky(char *args);
 void shell_cp(const char *args);
+void life(char *args);
 
 #endif

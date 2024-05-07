@@ -431,7 +431,6 @@ void createChat(){
                         //read message
                         if(buffer[0] == '/')
                         { //------------------------------------------------ analise function here
-
                             memmove(buffer, buffer + 1, strlen(buffer));
                             if(strcmp("users", buffer) == 0){
                                 char message[50]; // Allocate enough space for your message
@@ -462,7 +461,6 @@ void createChat(){
         if(args[i].isConnected == 0){continue;}
         close(args[i].client_socket);
     }
-    
     return;
 }
 

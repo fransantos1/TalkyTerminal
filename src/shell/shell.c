@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <ncurses.h>
+
 
 #include "shell.h"
 #include "ChatRoom.h"
@@ -16,6 +18,33 @@
 
 #define MAX_COMMAND_LEN 1024
 #define MAX_ARGS 10
+
+
+void life(char *in_token) {
+    MEVENT event;
+
+    // Initialize ncurses
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    mousemask(ALL_MOUSE_EVENTS, NULL);
+
+    int ch;
+    while ((ch = getch()) != 'q') {  // Exit loop on 'q' key
+        if (ch == KEY_MOUSE) {
+            if (getmouse(&event) == OK) {
+                if (event.bstate & BUTTON1_CLICKED) {
+                    printf("Mouse clicked at (%d, %d)\n", event.x, event.y);
+                }
+            }
+        }
+    }
+    // Cleanup
+    endwin();
+}
+
+
 
 
 //Change directory.
@@ -47,7 +76,9 @@ void shell_ls(char *args){
 }
 
 //Clear the terminal screen.
-void clear(char *args){
+
+//! Ncurses has a function for clear
+void shell_clear(char *args){
     if(strlen(args)> MAX_COMMAND_LEN){
         printf("invalid input");
         return;
@@ -156,22 +187,22 @@ void shell_echo(char *args){
     talky  -c      connect
 */
 
+
+ 
+
+
 void talky(char *args){
     if(args[0] == '\0'){
         printf("Not recognized:\n\n\033[31mtalky  [arg]\ntalky  -h      host\ntalky  -c      connect\033[0m\n");
         return;
     }
     char *ptr = strtok(args, " ");
-
-
-
-
-
     while (ptr != NULL) {
         if (strchr(ptr, '-') != NULL) {
             if(strchr(ptr, 'h') != NULL){
                 createChat();
             }else if(strchr(ptr, 'c') != NULL){
+                joinChat();
 
             }else{
                 printf("parameter not recognized\n");
