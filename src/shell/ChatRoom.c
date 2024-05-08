@@ -503,22 +503,22 @@ void createChat(){
 
 
 
-int main(int argc, char *argv[]) {
-    char input[10]; // Assuming the input won't exceed 100 characters
-    printf("\033[32m------------WELCOME TO CHATROOMS :D--------------\033[0m\n");
-    printf("Select Mode JOIN/CREATE: ");
-    fgets(input, sizeof(input), stdin);
-    input[strcspn(input, "\n")] = '\0'; 
-    if(strcmp(input, "JOIN") == 0 ){
-        joinChat();
-    }else if(strcmp(input, "CREATE") == 0){
-        createChat();
-    }else{
-        printf("Not a valid input");
-    }
+// int main(int argc, char *argv[]) {
+//     char input[10]; // Assuming the input won't exceed 100 characters
+//     printf("\033[32m------------WELCOME TO CHATROOMS :D--------------\033[0m\n");
+//     printf("Select Mode JOIN/CREATE: ");
+//     fgets(input, sizeof(input), stdin);
+//     input[strcspn(input, "\n")] = '\0'; 
+//     if(strcmp(input, "JOIN") == 0 ){
+//         joinChat();
+//     }else if(strcmp(input, "CREATE") == 0){
+//         createChat();
+//     }else{
+//         printf("Not a valid input");
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
 
 
