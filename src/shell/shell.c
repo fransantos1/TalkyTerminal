@@ -332,7 +332,6 @@ void compile(char *filename) {
                 strcpy(part, full_filename);
                 strcat(full_filename, ".");
                 strcat(full_filename, fileTypes[i].extension);
-                printf("This file is named: %s\n", full_filename);
                 int result = 0;
                 if(strcmp(fileTypes[i].extension, "c") == 0){
                     strcpy(command, "gcc -o ");
