@@ -13,7 +13,6 @@
 #include <fcntl.h>
 #include "ChatRoom.h"
 
-
 #define PORT 60584
 #define PASSWORD_SIZE 5
 #define MAX_USERNAME_SIZE 10
@@ -139,6 +138,7 @@ void joinChat(){
     pthread_t sendMessage;
     pthread_create(&sendMessage, NULL,SendMessageThread,(void *)&args);
     while(command != 1){
+        sleep(0.3);
         valread = read(args.client_socket, buffer, BUFFER_SIZE - 1); // subtract 1 for the null
         if(valread < 0){continue;}
         if(valread == 0){
@@ -197,6 +197,7 @@ void *AcceptConn(void *args){
         
     }
     while(command != 1){
+            sleep(0.5);
             int tempsocket;
             if ((tempsocket = accept(server_socket, (struct sockaddr*)&address,&addrlen))< 0){
                 continue;
@@ -217,7 +218,7 @@ void *AcceptConn(void *args){
                 continue;
             }
             
-            if (fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK) == -1){
+            if (fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK) == -1){//! REMOVE BLOCKING WHEN Epool
                 perror("calling fcntl");
                 close(tempsocket);
                 continue;
@@ -291,7 +292,7 @@ void createChat(){
     //use epool()?
     char *username = CreateUser();
 
-    int flags = fcntl(0, F_GETFL, 0);
+    int flags = fcntl(0, F_GETFL, 0); //! REMOVE BLOCKING WHEN Epool
     fcntl(0, F_SETFL, flags | O_NONBLOCK);// NOT THE BEST WAY is my guess
     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
             MESSAGE_HISTORY[i][0] = '\0';
@@ -348,6 +349,12 @@ void createChat(){
     if(isPrivate == 1)
         printf("Password: %s\n",password);
     while(command != 1){
+        sleep(0.2);
+
+
+
+
+
         for(int i = 0; i<=maxConns; i++){
                 if(args[i].isConnected == 0){continue;}// if the index doesnt have a user
                 memset(buffer, 0, sizeof(buffer));
@@ -392,7 +399,7 @@ void createChat(){
                 }
                 switch(args[i].status){
                     case 0:
-                    Servermsg msg;
+                        Servermsg msg;
                         if( strcmp(password, buffer) != 0)
                         {
                             msg.type = -1;
@@ -407,7 +414,7 @@ void createChat(){
                         }
                         msg.msg[0] = '\0';
                         args[i].status = 1;
-                        //compare incoming password
+                        
                         msg.type = 1;
                         send(args[i].client_socket, &msg, sizeof(msg), 0);
                         continue;
@@ -467,22 +474,22 @@ void createChat(){
 
 
 
-// int main(int argc, char *argv[]) {
-//     char input[10]; // Assuming the input won't exceed 100 characters
-//     printf("\033[32m------------WELCOME TO CHATROOMS :D--------------\033[0m\n");
-//     printf("Select Mode JOIN/CREATE: ");
-//     fgets(input, sizeof(input), stdin);
-//     input[strcspn(input, "\n")] = '\0'; 
-//     if(strcmp(input, "JOIN") == 0 ){
-//         joinChat();
-//     }else if(strcmp(input, "CREATE") == 0){
-//         createChat();
-//     }else{
-//         printf("Not a valid input");
-//     }
+int main(int argc, char *argv[]) {
+    char input[10]; // Assuming the input won't exceed 100 characters
+    printf("\033[32m------------WELCOME TO CHATROOMS :D--------------\033[0m\n");
+    printf("Select Mode JOIN/CREATE: ");
+    fgets(input, sizeof(input), stdin);
+    input[strcspn(input, "\n")] = '\0'; 
+    if(strcmp(input, "JOIN") == 0 ){
+        joinChat();
+    }else if(strcmp(input, "CREATE") == 0){
+        createChat();
+    }else{
+        printf("Not a valid input");
+    }
 
-//     return 0;
-// }
+    return 0;
+}
 
 
 
