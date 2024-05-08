@@ -45,6 +45,7 @@ char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE][MAX_MESSAGE_SIZE];
 
 typedef struct {
     char username[MAX_USERNAME_SIZE];
+    int isHost;//0 yes, 1 no
     int status;//0-needs auth/ 1-needs username/2-connected
     int client_socket;
     int isConnected;//0 not connected, 1 is connected
@@ -185,19 +186,16 @@ int server_socket;// server socket
 int availableIndex = -1;
 int n_connected = 0;
 int isPrivate = 0; //0 no, 1 is
+int epoll_fd;
+
+
+
 
 void *AcceptConn(void *args){
     ThreadArgs *threadArgs = (ThreadArgs *)args;
     socklen_t addrlen = sizeof(address);
     char errorMessage[14] = "Server is full";
-    if (fcntl(server_socket, F_SETFL, fcntl(server_socket, F_GETFL, 0) | O_NONBLOCK) == -1){
-        perror("calling fcntl");
-        close(server_socket);
-        pthread_exit(NULL);
-        
-    }
     while(command != 1){
-            sleep(0.5);
             int tempsocket;
             if ((tempsocket = accept(server_socket, (struct sockaddr*)&address,&addrlen))< 0){
                 continue;
@@ -217,13 +215,6 @@ void *AcceptConn(void *args){
                 close(tempsocket);  
                 continue;
             }
-            
-            if (fcntl(tempsocket, F_SETFL, fcntl(tempsocket, F_GETFL, 0) | O_NONBLOCK) == -1){//! REMOVE BLOCKING WHEN Epool
-                perror("calling fcntl");
-                close(tempsocket);
-                continue;
-            }
-            
             msg.type = 1;
             threadArgs[availableIndex].status = 1;
             if(isPrivate == 1){
@@ -233,6 +224,18 @@ void *AcceptConn(void *args){
             n_connected ++;
             threadArgs[availableIndex].client_socket = tempsocket;
             threadArgs[availableIndex].isConnected = 1;
+            
+
+            struct epoll_event event;
+            event.events = EPOLLIN; // Monitor for read events
+            event.data.fd = tempsocket;
+            event.data.ptr = (void*)&threadArgs[availableIndex];
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tempsocket, &event) == -1) {
+                perror("epoll_ctl");
+                exit(EXIT_FAILURE);
+                close(event.data.fd);
+            }
+
             send(tempsocket, &msg, sizeof(msg), 0);
             memset(threadArgs[availableIndex].username, 0, sizeof(threadArgs[availableIndex].username));
         }
@@ -286,14 +289,20 @@ void createChat(){
         password[PASSWORD_SIZE] = '\0';
     }
     //! max people connected, etc(already made but in discord)
-
-
-    ThreadArgs args[maxConns+1]; // struct of incomming connections +1 for own 
-    //use epool()?
     char *username = CreateUser();
 
-    int flags = fcntl(0, F_GETFL, 0); //! REMOVE BLOCKING WHEN Epool
-    fcntl(0, F_SETFL, flags | O_NONBLOCK);// NOT THE BEST WAY is my guess
+    ThreadArgs args[maxConns+1]; // struct of incomming connections +1 for own 
+
+    //---------------------------------epol---------------------
+    int num_fds;
+    struct epoll_event events[maxConns+1];
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1) {
+        perror("epoll_create1");
+        exit(EXIT_FAILURE);
+    }
+
+
     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
             MESSAGE_HISTORY[i][0] = '\0';
     }
@@ -301,11 +310,23 @@ void createChat(){
     args[maxConns].client_socket = 0;
     strcpy(args[maxConns].username, username);
     args[maxConns].status = 2;
+    args[maxConns].isHost = 1;
+
+    struct epoll_event event;
+    event.events = EPOLLIN; // Monitor for read events
+    event.data.fd = 0;
+    event.data.ptr = (void*)&args[maxConns];
+    
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, 0, &event) == -1) {
+        perror("epoll_ctl");
+        exit(EXIT_FAILURE);
+    }
 
     for(int i = 0;i<maxConns;i++){
         args[i].isConnected = 0;
         args[i].client_socket = -1;
         args[i].status = -1;
+        args[i].isHost = 0;
     }
     ssize_t bytes_received;
     int opt = 1;
@@ -349,23 +370,29 @@ void createChat(){
     if(isPrivate == 1)
         printf("Password: %s\n",password);
     while(command != 1){
-        sleep(0.2);
+        num_fds = epoll_wait(epoll_fd, events, maxConns+1, -1);
+        if (num_fds == -1) {
+            perror("epoll_wait");
+            exit(EXIT_FAILURE);
+        }
 
+        for (int n = 0; n < num_fds; ++n) {
+            if (events[n].events & EPOLLIN) {
 
-
-
-
-        for(int i = 0; i<=maxConns; i++){
-                if(args[i].isConnected == 0){continue;}// if the index doesnt have a user
+                ThreadArgs* arg = (ThreadArgs*)events[n].data.ptr;
                 memset(buffer, 0, sizeof(buffer));
                 memset(rec_message, 0, sizeof(rec_message));
-                bytes_received = read(args[i].client_socket, buffer, MAX_MESSAGE_SIZE - 1);
+                bytes_received = read(arg->client_socket, buffer, MAX_MESSAGE_SIZE - 1);
                 if(bytes_received == -1){continue;}
                 if(bytes_received == 0){ // if disconnected
-                    snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m left", args[i].username);
-                    memset(args[i].username, 0, sizeof(args[i].username));
+                    snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m left", arg->username);
+                    memset(arg->username, 0, sizeof(arg->username));
                     n_connected --;
-                    args[i].isConnected = 0;
+                    arg->isConnected = 0;
+                    close(arg->client_socket);
+
+                    // Remove file descriptor from epoll
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, arg->client_socket, NULL);
                     broadcast(rec_message, (void*) &args);
                     continue;
                 }
@@ -375,10 +402,10 @@ void createChat(){
 
 
                 if(bytes_received > sizeof(char)*MAX_MESSAGE_SIZE){
-                    send(args[i].client_socket, "Message Too Big", strlen("Message Too Big "), 0);
+                    send(arg->client_socket, "Message Too Big", strlen("Message Too Big "), 0);
                     continue;
                 }
-                if(i == maxConns){
+                if(arg->isHost == 1){
                     printf("\033[1A");
                     printf("\033[K");
                     if(buffer[0] == '/')
@@ -397,38 +424,38 @@ void createChat(){
                     
  
                 }
-                switch(args[i].status){
+                switch(arg->status){
                     case 0:
                         Servermsg msg;
                         if( strcmp(password, buffer) != 0)
                         {
                             msg.type = -1;
                             strcpy(msg.msg, "wrong Password");
-                            send(args[i].client_socket, &msg, sizeof(msg), 0);
-                            close(args[i].client_socket);
-                            memset(args[i].username, 0, sizeof(args[i].username));
+                            send(arg->client_socket, &msg, sizeof(msg), 0);
+                            close(arg->client_socket);
+                            memset(arg->username, 0, sizeof(arg->username));
                             n_connected --;
-                            args[i].isConnected = 0;
+                            arg->isConnected = 0;
                             continue;
                             break;
                         }
                         msg.msg[0] = '\0';
-                        args[i].status = 1;
+                        arg->status = 1;
                         
                         msg.type = 1;
-                        send(args[i].client_socket, &msg, sizeof(msg), 0);
+                        send(arg->client_socket, &msg, sizeof(msg), 0);
                         continue;
                         break;
                     case 1:
                         if(bytes_received > MAX_USERNAME_SIZE* sizeof(char)-1){ 
-                            send(args[i].client_socket, "Username too big choose another one", strlen("Username too big choose another one"), 0);
+                            send(arg->client_socket, "Username too big choose another one", strlen("Username too big choose another one"), 0);
                             continue;
                             break;
                         }
                         //read username
-                        memcpy(args[i].username, buffer, bytes_received*sizeof(char));
-                        snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m Joined", args[i].username);
-                        args[i].status = 2;
+                        memcpy(arg->username, buffer, bytes_received*sizeof(char));
+                        snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m Joined", arg->username);
+                        arg->status = 2;
 
                         //send history
 
@@ -442,12 +469,12 @@ void createChat(){
                             if(strcmp("users", buffer) == 0){
                                 char message[50]; // Allocate enough space for your message
                                 sprintf(message, "Number of connected users: %d", n_connected+1);
-                                sendMessage(3,message,args[i].client_socket);
+                                sendMessage(3,message,arg->client_socket);
                                 continue;
                             }
                             break;
                         }
-                        snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", args[i].username, buffer);
+                        snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", arg->username, buffer);
 
                         break;
                 }
@@ -456,12 +483,14 @@ void createChat(){
             
             if(rec_message[0] == '\0'){continue;} // if there are no message
             broadcast(rec_message, (void*) &args);
-            // if(history_index == 10){
-            //     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
-            //         if(MESSAGE_HISTORY[i][0] == '\0'){continue;}
-            //     }
-            // }
+            }
         }
+        // if(history_index == 10){
+        //     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
+        //         if(MESSAGE_HISTORY[i][0] == '\0'){continue;}
+        //     }
+        // }
+    
     }
     pthread_join(acceptClient, NULL);
     for(int i = 0;i<maxConns; i++){
