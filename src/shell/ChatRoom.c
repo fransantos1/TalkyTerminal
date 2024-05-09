@@ -37,8 +37,6 @@ char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE];
 // todo more pleasent terminal interface
 // todo instead of showing the number of users, show the name
 // todo each user has its own color
-
-
 // todo Hash Password
 
 
@@ -77,7 +75,7 @@ void joinChat(){
     char *ip = malloc(20*sizeof(char));
     printf("ip:");
     scanf("%s", ip);
-    strcpy(ip, "127.0.0.1");
+    //strcpy(ip, "127.0.0.1");
     char buffer[BUFFER_SIZE] = { 0 };
     if ((args.client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");

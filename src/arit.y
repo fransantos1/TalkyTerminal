@@ -64,7 +64,6 @@ command: CD argument
 		| TALKY argument
 			{
 				talky($2);
-			 	printf("\n");
 			}
 		| LIFE argument
 			{life($2);}
