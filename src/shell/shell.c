@@ -193,13 +193,13 @@ void shell_echo(char *args){
 
 void talky(char *args){
     if(args[0] == '\0'){
-        printf("Not recognized:\n\n\033[31mtalky  [arg]\ntalky  -h      host\ntalky  -c      connect\033[0m\n");
+        printf("Not recognized:\n\n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
         return;
     }
     char *ptr = strtok(args, " ");
     while (ptr != NULL) {
         if (strchr(ptr, '-') != NULL) {
-            if(strchr(ptr, 'h') != NULL){
+            if(strchr(ptr, 's') != NULL){
                 createChat();
             }else if(strchr(ptr, 'c') != NULL){
                 joinChat();
