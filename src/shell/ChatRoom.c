@@ -32,6 +32,8 @@ char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE];
 
 // todo kick/ban users
 
+// todo send files
+// todo encryption keys, public/private for messages
 // todo insert port manually
 // todo fix bug when enter with empty string, either the cmd goes doen or it prints a line
 // todo more pleasent terminal interface
