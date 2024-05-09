@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <sys/select.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h> 
@@ -13,6 +14,7 @@
 #include <fcntl.h>
 #include "ChatRoom.h"
 
+
 #define PORT 60584
 #define PASSWORD_SIZE 5
 #define MAX_USERNAME_SIZE 10
@@ -20,12 +22,11 @@
 #define BUFFER_SIZE 1024
 
 #define MAX_MESSAGE_SIZE 100
-#define MESSAGE_HISTORY_SIZE 80
+#define MESSAGE_HISTORY_SIZE 10
 
-char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE][MAX_MESSAGE_SIZE];
+char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE];
 
 // todo choose max users
-// todo user leave when disconnected from server
 
 // todo final review
 
@@ -41,7 +42,7 @@ char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE][MAX_MESSAGE_SIZE];
 // todo Hash Password
 
 
-
+int client_epoll;
 
 typedef struct {
     char username[MAX_USERNAME_SIZE];
@@ -53,46 +54,10 @@ typedef struct {
 
 typedef struct{
     int type;// 0-needs auth/ 1-needs username/ 2-sending history /3-message
-    char msg[MAX_MESSAGE_SIZE];
+    char msg[BUFFER_SIZE];
 } Servermsg;
 
 int command = 0; //for own 0- none/ 1-leave
-
-void *SendMessageThread(void *arg){
-    char buffer[MAX_MESSAGE_SIZE];
-    ThreadArgs *args = (ThreadArgs *)arg;
-    int client_socket = args->client_socket;
-    while(1){
-        fgets(buffer, sizeof(buffer), stdin);
-        buffer[strcspn(buffer, "\n")] = '\0'; 
-        if(strlen(buffer) > 0) {
-            if(strcmp("/leave", buffer) == 0){
-                command = 1;
-                return NULL;
-            }
-            printf("\033[1A"); // Move cursor up one line
-            printf("\033[K");  // Clear line
-            size_t test = send(client_socket, buffer, strlen(buffer), 0);
-            buffer[0] = '\0';
-        }   
-    }
-    return NULL;
-}
-Servermsg parse_server_message(char *buffer, size_t buffer_size) {
-    Servermsg msg;
-    msg.msg[0] = '\0';
-    if (buffer_size < sizeof(int)) {
-        msg.type = -1;
-        return msg;
-    }
-    memcpy(&msg.type, buffer, sizeof(int));
-    if (buffer_size > sizeof(int)) {
-        strcpy(msg.msg, buffer + sizeof(int));
-    }
-    memset(buffer, 0, buffer_size);
-    return msg;
-}
-
 
 char* CreateUser(){
     char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
@@ -112,6 +77,7 @@ void joinChat(){
     char *ip = malloc(20*sizeof(char));
     printf("ip:");
     scanf("%s", ip);
+    strcpy(ip, "127.0.0.1");
     char buffer[BUFFER_SIZE] = { 0 };
     if ((args.client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
@@ -126,52 +92,94 @@ void joinChat(){
             "\nInvalid address/ Address not supported \n");
         return;
     }
+    int num_fds;
+    struct epoll_event events[2];
+
+    client_epoll = epoll_create1(0);
+    if (client_epoll == -1) {
+        perror("epoll_create1");
+        exit(EXIT_FAILURE);
+    }
+
+
     if ((status= connect(args.client_socket, (struct sockaddr*)&serv_addr,
-             sizeof(serv_addr)))< 0) {
+        sizeof(serv_addr)))< 0) {
         printf("\nConnection Failed \n");
         return;
     }
-
-    if (fcntl(args.client_socket, F_SETFL, fcntl(args.client_socket, F_GETFL, 0) | O_NONBLOCK) == -1){
-            perror("calling fcntl");
-            close(args.client_socket);
+    struct epoll_event event;
+    event.events = EPOLLIN;
+    event.data.fd = 0;
+    if (epoll_ctl(client_epoll, EPOLL_CTL_ADD, 0, &event) == -1) {
+        perror("epoll_ctl");
+        exit(EXIT_FAILURE);
     }
-    pthread_t sendMessage;
-    pthread_create(&sendMessage, NULL,SendMessageThread,(void *)&args);
+    struct epoll_event event1;
+    event1.events = EPOLLIN;
+    event1.data.fd = args.client_socket;
+    if (epoll_ctl(client_epoll, EPOLL_CTL_ADD, args.client_socket, &event1) == -1) {
+        perror("epoll_ctl");
+        exit(EXIT_FAILURE);
+    }
     while(command != 1){
-        sleep(0.3);
-        valread = read(args.client_socket, buffer, BUFFER_SIZE - 1); // subtract 1 for the null
-        if(valread < 0){continue;}
-        if(valread == 0){
-            printf("Disconnected from Server\n");
-            command =1;
-            break;
-        }
-        Servermsg msg = parse_server_message(buffer, valread);
-        if(msg.msg[0] != '\0'){
-            printf("%s\n",msg.msg);
-        }
-        switch(msg.type){
-            case 0:
-                printf("Whats the password?\n");
-                break;
-            case 1:
-                size_t test = send(args.client_socket, username, strlen(username), 0);
-                system("clear");
-                //send username
-                break;
-            case 2:
-                
-                //recieve history
-                break;
-        }
         memset(buffer, 0, sizeof(buffer));
+        int num_fds = epoll_wait(client_epoll, events, 2, -1);
+        if (num_fds == -1) {
+            perror("epoll_wait");
+            exit(EXIT_FAILURE);
+        }
+        Servermsg message;
+        for (int n = 0; n < num_fds; ++n) {
+            if (!(events[n].events & EPOLLIN))  {
+                continue;
+            }
+            if(events[n].data.fd == 0){
+                valread = read(events[n].data.fd, buffer, BUFFER_SIZE - 1);
+                buffer[strcspn(buffer, "\n")] = '\0'; 
+                if(strlen(buffer) < 1) {
+                    continue;
+                }
+                if(strcmp("/leave", buffer) == 0){
+                    command = 1;
+                    continue;
+                }
+                printf("\033[1A"); // Move cursor up one line
+                printf("\033[K");  // Clear line
+                size_t test = send(args.client_socket, buffer, strlen(buffer), 0);
+                buffer[0] = '\0';
+                continue;
+            }
 
+
+            valread = read(events[n].data.fd, &message, sizeof(message));
+            if(valread == 0){
+                printf("Disconnected from Server\n");
+                command =1;
+                break;
+            }
+            if(message.msg[0] != '\0'){
+                printf("%s\n",message.msg);
+            }
+            switch(message.type){
+                case 0:
+                    printf("Whats the password?\n");
+                    break;
+                case 1:
+                    size_t test = send(args.client_socket, username, strlen(username), 0);
+                    system("clear");
+                    //send username
+                    break;
+                case 2:
+                    //recieve history
+                    break;
+                
+            }
+        }
     }
-    pthread_join(sendMessage, NULL);
+    command = 0;
     close(args.client_socket);
     free(ip);
-    exit(1);
+    MESSAGE_HISTORY[0] = '\0';
     return ;
 }
 
@@ -187,16 +195,37 @@ int availableIndex = -1;
 int n_connected = 0;
 int isPrivate = 0; //0 no, 1 is
 int epoll_fd;
+int epoll_fd1;
 
 
 
 
 void *AcceptConn(void *args){
+    epoll_fd1 = epoll_create1(0);
     ThreadArgs *threadArgs = (ThreadArgs *)args;
     socklen_t addrlen = sizeof(address);
     char errorMessage[14] = "Server is full";
+
+
+    struct epoll_event event1;
+    event1.events = EPOLLIN | EPOLLET; // Monitor for read events in edge-triggered mode
+    event1.data.fd = server_socket;
+    if (epoll_ctl(epoll_fd1, EPOLL_CTL_ADD, server_socket, &event1) == -1) {
+        perror("epoll_ctl");
+        close(server_socket);
+        pthread_exit(NULL);
+    }
     while(command != 1){
             int tempsocket;
+            struct epoll_event events[maxConns];
+            int num_events = epoll_wait(epoll_fd1, events, maxConns, 500); // Wait for events with a timeout of 1 second
+            if (num_events == -1) {
+                perror("epoll_wait");
+                pthread_exit(NULL); ;
+            }
+            if (num_events == 0) {
+                continue;
+            }
             if ((tempsocket = accept(server_socket, (struct sockaddr*)&address,&addrlen))< 0){
                 continue;
             }
@@ -218,6 +247,7 @@ void *AcceptConn(void *args){
             msg.type = 1;
             threadArgs[availableIndex].status = 1;
             if(isPrivate == 1){
+                printf("private\n");
                 threadArgs[availableIndex].status = 0;
                 msg.type = 0;
             }
@@ -225,7 +255,6 @@ void *AcceptConn(void *args){
             threadArgs[availableIndex].client_socket = tempsocket;
             threadArgs[availableIndex].isConnected = 1;
             
-
             struct epoll_event event;
             event.events = EPOLLIN; // Monitor for read events
             event.data.fd = tempsocket;
@@ -239,6 +268,7 @@ void *AcceptConn(void *args){
             send(tempsocket, &msg, sizeof(msg), 0);
             memset(threadArgs[availableIndex].username, 0, sizeof(threadArgs[availableIndex].username));
         }
+
         pthread_exit(NULL);
 }
 
@@ -278,6 +308,7 @@ void createChat(){
         option = tempOption;
         
     }
+    isPrivate = 0;
     int keys_len = sizeof(keys) / sizeof(keys[0]);
     char password[PASSWORD_SIZE];
     if (option == 1) {
@@ -303,9 +334,8 @@ void createChat(){
     }
 
 
-    for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
-            MESSAGE_HISTORY[i][0] = '\0';
-    }
+    MESSAGE_HISTORY[0] = '\0';
+   
     args[maxConns].isConnected = 1;
     args[maxConns].client_socket = 0;
     strcpy(args[maxConns].username, username);
@@ -333,11 +363,13 @@ void createChat(){
     socklen_t addrlen = sizeof(address);
     char buffer[MAX_MESSAGE_SIZE] = { 0 };
     // Creating socket file descriptor
+
+
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
-    
+
     // Forcefully attaching socket to the port 8080
     if (setsockopt(server_socket, SOL_SOCKET,
                    SO_REUSEADDR , &opt,
@@ -378,7 +410,6 @@ void createChat(){
 
         for (int n = 0; n < num_fds; ++n) {
             if (events[n].events & EPOLLIN) {
-
                 ThreadArgs* arg = (ThreadArgs*)events[n].data.ptr;
                 memset(buffer, 0, sizeof(buffer));
                 memset(rec_message, 0, sizeof(rec_message));
@@ -458,8 +489,9 @@ void createChat(){
                         arg->status = 2;
 
                         //send history
-
-
+                        // sendMessage(2, MESSAGE_HISTORY, arg->client_socket);
+                        // printf("Sending history\n");
+                        // printf("%s\n",MESSAGE_HISTORY);
                         break;
                     case 2:
                         //read message
@@ -478,25 +510,31 @@ void createChat(){
 
                         break;
                 }
-                strcpy(MESSAGE_HISTORY[history_index], rec_message);
-                history_index ++;
-            
             if(rec_message[0] == '\0'){continue;} // if there are no message
             broadcast(rec_message, (void*) &args);
+            if(strlen(MESSAGE_HISTORY)+ strlen(rec_message)>=MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE){
+                printf("no more space in history");
+                continue;
+            }
+            // char *tmp = strdup(rec_message);
+            // strcpy(rec_message, "\n"); //Put str2 or anyother string that you want at the begining
+            // strcat(rec_message, tmp);  //concatenate previous str1
+            // strcat(MESSAGE_HISTORY, rec_message);
+            // free(tmp); //free the memory
             }
         }
-        // if(history_index == 10){
-        //     for(int i = 0; i<MESSAGE_HISTORY_SIZE;i++){
-        //         if(MESSAGE_HISTORY[i][0] == '\0'){continue;}
-        //     }
-        // }
-    
+
     }
+    command = 0;
+    close(epoll_fd);
+    close(epoll_fd1);
     pthread_join(acceptClient, NULL);
     for(int i = 0;i<maxConns; i++){
         if(args[i].isConnected == 0){continue;}
         close(args[i].client_socket);
     }
+    close(server_socket);
+    MESSAGE_HISTORY[0] = '\0';
     return;
 }
 
