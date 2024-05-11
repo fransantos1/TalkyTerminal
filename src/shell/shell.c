@@ -185,8 +185,25 @@ void shell_echo(char *args){
 struct FileType {
     const char *extension;
     const char *type;
+    const char *compile;
+    const char *execute;
 };
 
+void replaceString(char *command, const char *part) {
+    char *pos = command;
+    char *file_pos = strstr(pos, "file");
+    while (file_pos != NULL) {
+        size_t prefix_length = file_pos - pos;
+        char updated_command[1024]; // Adjust the size as needed
+        strncpy(updated_command, pos, prefix_length);
+        updated_command[prefix_length] = '\0'; // Null-terminate the string
+        strcat(updated_command, part);
+        pos = file_pos + strlen("file"); // Update pos to point after "file"
+        strcat(updated_command, pos); // Concatenate the rest of the original string
+        strcpy(command, updated_command); // Update the original string
+        file_pos = strstr(pos, "file"); // Find the next occurrence of "file"
+    }
+}
 
 void compile(char *filename) {
     DIR *dir;
@@ -201,9 +218,19 @@ void compile(char *filename) {
     char suffix_found[256] = "";
     char command[MAX_COMMAND_LEN];
     int result = 0;
-    char part[1024]; // Assuming maximum filename length of 1023 characters
-    char full_filename[1024]; // Assuming maximum filename length of 1023 characters
-
+    char full_filename[1024];
+    char args[200];     
+    char *space_position = strchr(filename, ' ');
+    if (space_position != NULL) {
+        // Copy the part after the space into args
+        strcpy(args, space_position + 1);
+        // Allocate memory for a new string to store the part before the space
+        char filename_before_space[256];
+        strncpy(filename_before_space, filename, space_position - filename);
+        filename_before_space[space_position - filename] = '\0'; // Null-terminate the string
+        // Copy the part before the space back into filename
+        strcpy(filename, filename_before_space);
+    }
     // Initialize extension_list
     for (int i = 0; i < 256; ++i) {
         extension_list[i][0] = '\0';
@@ -229,7 +256,6 @@ void compile(char *filename) {
         } else {
             strcpy(full_filename, filename);
         }
-        strcpy(part, full_filename);
         while ((entry = readdir(dir)) != NULL) {
             strcpy(filename_copy, entry->d_name); // Make a copy of the filename;
             const char *dot_position = strrchr(filename_copy, '.');
@@ -271,99 +297,94 @@ void compile(char *filename) {
         closedir(dir);
     }
 
-
-
-
     struct FileType fileTypes[] = {
-        {"h", "H file"},
-        {"py", "Python file"},
-        {"cs", "Visual C# file"},
-        {"php", "Hypertext Preprocessor script file"},
-        {"swift", "Swift file"},
-        {"vb", "Visual Basic file"},
-        {"doc", "Word document file"},
-        {"docx", "Word document file"},
-        {"html", "HTML file"},
-        {"a", "i see the problem file"},
-        {"html", "HTML file"},
-        {"pdf", "PDF file"},
-        {"txt", "Text file"},
-        {"rtf", "Rich Text Format file"}
+        {"c", "C file", "gcc -o file file.c", "./file"}, 
+        {"cs", "Visual C# file", "mcs -out: file.exe file.cs", "mono file.exe"},
+        {"java", "Java file", "javac file.java", "java Main"},
+        {"py", "Python file", "", "python file.py"},
+        {"js", "Javascript file", "", "node file.js" },
+        {"h", "H file", "", ""},
+        {"php", "Hypertext Preprocessor script file", "", "php file.php"},
+        {"swift", "Swift file", "", ""},
+        {"vb", "Visual Basic file", "", ""},
+        {"doc", "Word document file", "", ""},
+        {"docx", "Word document file", "", ""},
+        {"html", "HTML file", "", ""},
+        {"html", "HTML file", "", ""},
+        {"pdf", "PDF file", "", ""},
+        {"txt", "Text file", "", ""},
+        {"rtf", "Rich Text Format file", "", ""}
     };
-    for (size_t j = 0; j < sizeof(fileTypes) / sizeof(fileTypes[0]); ++j) {
-        if (strcmp(suffix_found, fileTypes[j].extension) == 0) {extension_found = 1;}
+    const char *dot_position = strrchr(filename, '.');
+    if (dot_position != NULL) {
+        size_t length = dot_position - filename;
+        strncpy(full_filename, filename, length);
+        full_filename[length] = '\0';
+    } else {
+        strcpy(full_filename, filename);
     }
-    for (size_t i = 0; i < extension_count; i++){
-        if(strcmp(extension_list[i], "c") == 0){
-            strcpy(command, "gcc -o ");
-            strcat(command, part);
-            strcat(command, " ");
-            strcat(command, part);
-            strcat(command, ".c");
-            result = system(command);
-            extension_found = 1;
-            if (result == 0) {
-                printf("Compilation successful\n");
-            } 
-        }else if(strcmp(extension_list[i], "cs") == 0){
-            strcpy(command, "mcs -out:");
-            strcat(command, part);
-            strcat(command, ".exe ");
-            strcat(command, part);
-            strcat(command, ".cs");
-            result = system(command);
-            extension_found = 1;
-            printf("Compilation successful\n");
-        }else if(strcmp(extension_list[i], "java") == 0){
-            strcpy(command, "javac ");
-            strcat(command, part);
-            strcat(command, ".java");
-            result = system(command);
-            extension_found = 1;
-            printf("Compilation successful\n");
-        }else if(strcmp(extension_list[i], "py") == 0){
-            strcpy(command, "python ");
-            strcat(command, part);
-            strcat(command, ".py");
-            result = system(command);
-            extension_found = 1;
-            if(result == -1){
-                strcpy(command, "python ");
-                strcat(command, part);
-                strcat(command, ".py");
-                int result = system(command);
+    if (extension_count > 1){
+        extension_found = 1;
+        printf("%d", extension_count);
+        printf(" files found \n");
+        for (size_t i = 0; i < extension_count; i++){
+            printf(full_filename);
+            printf(".");
+            printf(extension_list[i]);
+            printf("\n");
+        }
+        printf("please try again with the specific file\n");
+    }else{
+        for (size_t j = 0; j < sizeof(fileTypes) / sizeof(fileTypes[0]); ++j) {
+            if (strcmp(extension_list[0], fileTypes[j].extension) == 0) {
                 extension_found = 1;
-            }
-            else{printf("Compilation successful\n");}
-        }else{
-            for (size_t j = 0; j < sizeof(fileTypes) / sizeof(fileTypes[0]); ++j) {
-                if (strcmp(extension_list[i], fileTypes[j].extension) == 0) {
-                    extension_found = 1;
-                    char full_filename[1024]; // Assuming maximum filename length of 1023 characters
-                    const char *dot_position = strrchr(filename, '.');
-                    if (dot_position != NULL) {
-                        size_t length = dot_position - filename;
-                        strncpy(full_filename, filename, length);
-                        full_filename[length] = '\0';
-                    } else {
-                    strcpy(full_filename, filename);
-                    }
-                    char part[1024]; // Assuming maximum filename length of 1023 characters
+                char part[1024]; // Assuming maximum filename length of 1023 character
+                strcpy(part, full_filename);
+                if(args == NULL){ printf("args is null");}
+                if(strcmp(args, "-l") == 0){
+                    strcat(full_filename, ".");
+                    strcat(full_filename, fileTypes[j].extension);
+                    strcat(full_filename, " this is a ");
+                    strcat(full_filename, fileTypes[j].extension);
+                    strcat(full_filename, "\n");
+                    printf(full_filename);
+                }else if(fileTypes[j].compile == NULL && fileTypes[j].execute == NULL &&
+                        (strcmp(args, "") == 0 || strcmp(args, "-c") == 0 || strcmp(args, "-e") == 0)){
                     strcpy(part, full_filename);
                     strcat(full_filename, ".");
                     strcat(full_filename, fileTypes[j].extension);
                     strcat(full_filename, " this is a ");
                     strcat(full_filename, fileTypes[j].extension);
-                    strcat(full_filename, "file at the momment we are unable to compile this type of file \n");
+                    strcat(full_filename, " file at the momment we are unable to compile this type of file \n");
                     printf(full_filename);
-                }
-                
-            }
+                }else if(strcmp(args, "") == 0 || strcmp(args, "-c") == 0 || strcmp(args, "-e") == 0){
+                    char command[1024];
+                    strcpy(command, fileTypes[j].compile);
+                    if (strcmp(fileTypes[j].compile, "") != 0) {
+                        strcpy(command, fileTypes[j].compile);
+                        replaceString(command, part);
+                        int result = system(command);
+                        if (result == 0) {
+                            printf("Compilation successful\n");
+                        } 
+                    }else if( strcmp(args, "-e") == 0){
+                        strcpy(command, fileTypes[j].execute);
+                        replaceString(command, part);
+                        int result = system(command);
+                        if (result == 0) {
+                            printf("Compilation successful\n");
+                        }
+                    }else{printf("File can only be executed not compiled try adding -e at the end\n");}
+                }else{
+                    printf("unknown option please try again\n");
+                }                 
+            }        
         }
     }
     if(filename_found == 0){printf("No matching file found\n");} 
     if (extension_found == 0){printf("Unknown extension\n");}
 }
+
 
 
 
