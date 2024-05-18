@@ -286,10 +286,10 @@ void broadcast(char *rec_message, void *in_args){
         send(args[n].client_socket,&msg, sizeof(msg), 0);
     }
 }
-void sendMessage(int type,char *rec_message, int socket){
+void sendMessage(int type,char *in_rec_message, int socket){
     Servermsg msg;
     msg.type = type;
-    strcpy(msg.msg, rec_message);
+    strcpy(msg.msg, in_rec_message);
     send(socket,&msg, sizeof(msg), 0);
 }
 
@@ -298,16 +298,39 @@ void createChat(){
     srand(time(NULL));
     int option = 0;
     printf("Choose type:\n1->private\n2->public\n");
-    while(option == 0){
-        int tempOption;
-        scanf("%d", &tempOption);
-        if(tempOption != 1 && tempOption != 2){
-            printf("not recognized\n");
+    int tempOption;
+    while (option == 0) {
+        if (scanf("%d", &tempOption) != 1) {
+            printf("Invalid input\n");
+            while (getchar() != '\n');
+            continue;
+        }
+        if (tempOption != 1 && tempOption != 2) {
+            printf("Not recognized\n");
             continue;
         }
         option = tempOption;
-        
     }
+    printf("Max player:\n");
+    tempOption = 0;
+    while (1) {
+        if (scanf("%d", &tempOption) != 1) {
+            printf("Invalid input\n");
+            while (getchar() != '\n');
+            continue;
+        }
+        if (tempOption == 0) {
+            printf("Not valid\n");
+            continue;
+            while (getchar() != '\n');
+        }
+        maxConns = tempOption;
+        break;
+    }
+
+
+
+
     isPrivate = 0;
     int keys_len = sizeof(keys) / sizeof(keys[0]);
     char password[PASSWORD_SIZE];
