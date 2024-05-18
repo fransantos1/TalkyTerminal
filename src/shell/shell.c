@@ -189,21 +189,43 @@ struct FileType {
     const char *execute;
 };
 
-void replaceString(char *command, const char *part) {
-    char *pos = command;
-    char *file_pos = strstr(pos, "file");
-    while (file_pos != NULL) {
-        size_t prefix_length = file_pos - pos;
-        char updated_command[1024]; // Adjust the size as needed
-        strncpy(updated_command, pos, prefix_length);
-        updated_command[prefix_length] = '\0'; // Null-terminate the string
-        strcat(updated_command, part);
-        pos = file_pos + strlen("file"); // Update pos to point after "file"
-        strcat(updated_command, pos); // Concatenate the rest of the original string
-        strcpy(command, updated_command); // Update the original string
-        file_pos = strstr(pos, "file"); // Find the next occurrence of "file"
-    }
-}
+char* replaceWord(const char* s, const char* oldW, 
+                const char* newW) 
+{ 
+    char* result; 
+    int i, cnt = 0; 
+    int newWlen = strlen(newW); 
+    int oldWlen = strlen(oldW); 
+ 
+    // Counting the number of times old word 
+    // occur in the string 
+    for (i = 0; s[i] != '\0'; i++) { 
+        if (strstr(&s[i], oldW) == &s[i]) { 
+            cnt++; 
+ 
+            // Jumping to index after the old word. 
+            i += oldWlen - 1; 
+        } 
+    } 
+ 
+    // Making new string of enough length 
+    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1); 
+ 
+    i = 0; 
+    while (*s) { 
+        // compare the substring with the result 
+        if (strstr(s, oldW) == s) { 
+            strcpy(&result[i], newW); 
+            i += newWlen; 
+            s += oldWlen; 
+        } 
+        else
+            result[i++] = *s++; 
+    } 
+ 
+    result[i] = '\0'; 
+    return result; 
+} 
 
 void compile(char *filename) {
     DIR *dir;
@@ -362,15 +384,17 @@ void compile(char *filename) {
                     strcpy(command, fileTypes[j].compile);
                     if (strcmp(fileTypes[j].compile, "") != 0) {
                         strcpy(command, fileTypes[j].compile);
-                        replaceString(command, part);
-                        int result = system(command);
+                        char* resulte  = replaceWord(command,"file", part);
+                        printf(resulte);
+                        int result = system(resulte);
                         if (result == 0) {
                             printf("Compilation successful\n");
                         } 
                     }else if( strcmp(args, "-e") == 0){
                         strcpy(command, fileTypes[j].execute);
-                        replaceString(command, part);
-                        int result = system(command);
+                        char* resulte  = replaceWord(command,"file", part);
+                        printf(resulte);
+                        int result = system(resulte);
                         if (result == 0) {
                             printf("Compilation successful\n");
                         }
