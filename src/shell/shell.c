@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ncurses.h>
-
+#include <signal.h>
 
 #include "shell.h"
 #include "ChatRoom.h"
@@ -34,6 +34,7 @@ void life(char *in_token) {
     keypad(stdscr, TRUE);       // Enable keypad mode
     mousemask(ALL_MOUSE_EVENTS, NULL); // Enable mouse events
     curs_set(0);                // Hide the cursor
+    nodelay(stdscr, FALSE); 
      
     getmaxyx(stdscr, height, width);
     square map[height][width];
@@ -49,6 +50,22 @@ void life(char *in_token) {
     refresh();
     int ch;
     while ((ch = getch()) != 'q') {  // Exit loop on 'q' key
+        if (ch == KEY_MOUSE) {
+            if (getmouse(&event) == OK) {
+                if (event.bstate & BUTTON1_CLICKED) {
+                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
+                        map[event.y][event.x].isOccupied = 1;
+                        mvprintw(event.y, event.x, "X");
+                    }
+                }
+                if (event.bstate & BUTTON1_DOUBLE_CLICKED) {
+                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
+                        map[event.y][event.x].isOccupied = 0;
+                        mvprintw(event.y, event.x, " ");
+                    }
+                }
+            }
+        }
         if (ch == '\n' || ch == EOF) {
             nodelay(stdscr, TRUE); 
                 while (1) { 
@@ -97,25 +114,11 @@ void life(char *in_token) {
             break;
         }
 		
-        if (ch == KEY_MOUSE) {
-            if (getmouse(&event) == OK) {
-                if (event.bstate & BUTTON1_CLICKED) {
-                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
-                        map[event.y][event.x].isOccupied = 1;
-                        mvprintw(event.y, event.x, "X");
-                    }
-                }
-                if (event.bstate & BUTTON1_DOUBLE_CLICKED) {
-                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
-                        map[event.y][event.x].isOccupied = 0;
-                        mvprintw(event.y, event.x, " ");
-                    }
-                }
-            }
-        }
+
        
     }
     refresh();
+    signal(SIGWINCH, SIG_IGN);
     endwin(); 
 }
 
