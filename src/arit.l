@@ -40,9 +40,11 @@ life          { yylval.comval =malloc(yyleng+1);
 cp          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return CP;}
-                            
-[a-zA-Z0-9./-]+    { yylval.str =malloc(yyleng+1); 
-                            strcpy(yylval.str, yytext); 
-                            return ARGS;}
-\n              return yytext[0];
-.   { }
+
+[a-zA-Z0-9./-]+  { yylval.str = malloc(yyleng + 1); 
+                    strcpy(yylval.str, yytext); 
+                    return ARGS; }
+\n               { return yytext[0]; }
+.                { }
+%%
+

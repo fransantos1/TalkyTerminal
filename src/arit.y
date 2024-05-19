@@ -40,8 +40,7 @@ linha: 	'\n'
 		| command
 		| argument
 			{
-				test();
-				printf("Command not recognized type /help for commands x3c \n");
+				system($1);
 			}
 	;
 
@@ -66,7 +65,9 @@ command: CD argument
 				talky($2);
 			}
 		| LIFE argument
-			{life($2);}
+			{
+				life($2);
+			}
 		| CP argument
 			{shell_cp($2); }
         ;

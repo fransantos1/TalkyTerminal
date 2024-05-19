@@ -20,29 +20,105 @@
 #define MAX_ARGS 10
 
 
+typedef struct {
+    int isOccupied;
+} square;
+
 void life(char *in_token) {
+    refresh();
     MEVENT event;
+    int height, width;
+    initscr();                  // Initialize the window
+    cbreak();                   // Line buffering disabled
+    noecho();                   // Don't echo input
+    keypad(stdscr, TRUE);       // Enable keypad mode
+    mousemask(ALL_MOUSE_EVENTS, NULL); // Enable mouse events
+    curs_set(0);                // Hide the cursor
+     
+    getmaxyx(stdscr, height, width);
+    square map[height][width];
 
-    // Initialize ncurses
-    initscr();
-    cbreak();
-    noecho();
-    keypad(stdscr, TRUE);
-    mousemask(ALL_MOUSE_EVENTS, NULL);
+    // Initialize the map
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            map[i][j].isOccupied = 0;  // Assuming 0 is the default state
+        }
+    }
 
+    clear();  // Clear the screen at the beginning
+    refresh();
     int ch;
     while ((ch = getch()) != 'q') {  // Exit loop on 'q' key
+        if (ch == '\n' || ch == EOF) {
+            nodelay(stdscr, TRUE); 
+                while (1) { 
+                    ch = getch();  
+                    if (ch == 'q') { 
+                        break;
+                    }
+                square tempMap[height][width];
+                for (int i = 0; i < height; i++) {
+                    for (int j = 0; j < width; j++) {
+                        tempMap[i][j].isOccupied = map[i][j].isOccupied;
+                    }
+                }
+
+                for (int i = 0; i < height; i++) {
+                    for (int j = 0; j < width; j++) {
+                        int counter = 0; // SEE neighbours
+                        for (int n = i - 1; n <= i + 1; n++) {
+                            for (int m = j - 1; m <= j + 1; m++) {
+                                if (n == i && m == j) continue; 
+                                if (n >= 0 && n < height && m >= 0 && m < width) {
+                                    if (map[n][m].isOccupied == 1) {
+                                        counter++;
+                                    }
+                                }
+                            }
+                        }
+                        if (map[i][j].isOccupied == 0 && counter == 3) {
+                            tempMap[i][j].isOccupied = 1;
+                        } else if (map[i][j].isOccupied == 1 && (counter < 2 || counter > 3)) {
+                            tempMap[i][j].isOccupied = 0;
+                        }
+                    }
+                }
+                for (int i = 0; i < height; i++) {
+                    for (int j = 0; j < width; j++) {
+                        if (map[i][j].isOccupied != tempMap[i][j].isOccupied) {
+                            map[i][j].isOccupied = tempMap[i][j].isOccupied;
+                            mvprintw(i, j, map[i][j].isOccupied ? "X" : " ");
+                        }
+                    }
+                }
+                refresh();
+                usleep(250000);
+            }
+            break;
+        }
+		
         if (ch == KEY_MOUSE) {
             if (getmouse(&event) == OK) {
                 if (event.bstate & BUTTON1_CLICKED) {
-                    printf("Mouse clicked at (%d, %d)\n", event.x, event.y);
+                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
+                        map[event.y][event.x].isOccupied = 1;
+                        mvprintw(event.y, event.x, "X");
+                    }
+                }
+                if (event.bstate & BUTTON1_DOUBLE_CLICKED) {
+                    if (event.y >= 0 && event.y < height && event.x >= 0 && event.x < width) {
+                        map[event.y][event.x].isOccupied = 0;
+                        mvprintw(event.y, event.x, " ");
+                    }
                 }
             }
         }
+       
     }
-    // Cleanup
-    endwin();
+    refresh();
+    endwin(); 
 }
+
 
 
 
@@ -187,38 +263,34 @@ void shell_echo(char *args){
     talky  -c      connect
 */
 
-
- 
-
-
-void talky(char *args){
-    if(args[0] == '\0'){
-        printf("Not recognized:\n\n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
-        return;
-    }
+void talky(char *args) {
     char *ptr = strtok(args, " ");
     while (ptr != NULL) {
-        if (strchr(ptr, '-') != NULL) {
-            if(strchr(ptr, 's') != NULL){
+        if (strcmp(ptr, "--help") == 0) {
+            printf("Help requested:\n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
+            return;
+        } else if (ptr[0] == '-') {
+            if (strcmp(ptr, "-s") == 0) {
                 createChat();
-            }else if(strchr(ptr, 'c') != NULL){
+            } else if (strcmp(ptr, "-c") == 0) {
                 joinChat();
-
-            }else{
-                printf("parameter not recognized\n");
+            } else {
+                printf("Parameter '%s' not recognized\n", ptr);
                 return;
             }
+        } else {
+            printf("Invalid argument: %s\n", ptr);
+            return;
         }
         ptr = strtok(NULL, " ");
     }
-    return;
-    //    memmove(buffer, buffer + 1, strlen(buffer));
-
 }
 
 struct FileType {
     const char *extension;
     const char *type;
+    const char *compile;
+    const char *execute;
 };
 char* replaceWord(const char* s, const char* oldW, 
                 const char* newW){ 

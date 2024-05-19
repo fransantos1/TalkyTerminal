@@ -26,26 +26,28 @@
 
 char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE];
 
-// todo choose max users
-
-// todo final review
-
-// todo kick/ban users
-
-// todo send files
-// todo encryption keys, public/private for messages
-// todo insert port manually
 // todo fix bug when enter with empty string, either the cmd goes doen or it prints a line
+// todo insert port manually
 // todo more pleasent terminal interface
 // todo instead of showing the number of users, show the name
-// todo each user has its own color
+// todo final review
+// todo send files
+// todo kick/ban users
+// todo encryption keys, public/private keys
 // todo Hash Password
 
 
 int client_epoll;
 
+typedef struct{
+    int r;
+    int g;
+    int b;
+} color;
+
 typedef struct {
     char username[MAX_USERNAME_SIZE];
+    color color;
     int isHost;//0 yes, 1 no
     int status;//0-needs auth/ 1-needs username/2-connected
     int client_socket;
@@ -53,11 +55,15 @@ typedef struct {
 } ThreadArgs;
 
 typedef struct{
-    int type;// 0-needs auth/ 1-needs username/ 2-sending history /3-message
+    int type;// 0-auth/ 1-username/ 2-history/ 3-message/ 4-file
     char msg[BUFFER_SIZE];
 } Servermsg;
 
 int command = 0; //for own 0- none/ 1-leave
+
+
+
+
 
 char* CreateUser(){
     char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
@@ -254,7 +260,9 @@ void *AcceptConn(void *args){
             n_connected ++;
             threadArgs[availableIndex].client_socket = tempsocket;
             threadArgs[availableIndex].isConnected = 1;
-            
+            threadArgs[availableIndex].color.r = rand() % 255 + 1;
+            threadArgs[availableIndex].color.g = rand() % 255 + 1;
+            threadArgs[availableIndex].color.b = rand() % 255 + 1;
             struct epoll_event event;
             event.events = EPOLLIN; // Monitor for read events
             event.data.fd = tempsocket;
@@ -271,6 +279,8 @@ void *AcceptConn(void *args){
 
         pthread_exit(NULL);
 }
+
+
 
 void broadcast(char *rec_message, void *in_args){
     ThreadArgs *args = (ThreadArgs *)in_args;
@@ -311,7 +321,7 @@ void createChat(){
         }
         option = tempOption;
     }
-    printf("Max player:\n");
+    printf("Max Conns:\n");
     tempOption = 0;
     while (1) {
         if (scanf("%d", &tempOption) != 1) {
@@ -364,7 +374,9 @@ void createChat(){
     strcpy(args[maxConns].username, username);
     args[maxConns].status = 2;
     args[maxConns].isHost = 1;
-
+    args[maxConns].color.r = rand() % 255 + 1;
+    args[maxConns].color.g = rand() % 255 + 1;
+    args[maxConns].color.b = rand() % 255 + 1;
     struct epoll_event event;
     event.events = EPOLLIN; // Monitor for read events
     event.data.fd = 0;
@@ -439,7 +451,7 @@ void createChat(){
                 bytes_received = read(arg->client_socket, buffer, MAX_MESSAGE_SIZE - 1);
                 if(bytes_received == -1){continue;}
                 if(bytes_received == 0){ // if disconnected
-                    snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m left", arg->username);
+                    snprintf(rec_message, sizeof(rec_message), "User \033[38;2;%d;%d;%dm%s\033[0m left", arg->color.r, arg->color.g, arg->color.b, arg->username);
                     memset(arg->username, 0, sizeof(arg->username));
                     n_connected --;
                     arg->isConnected = 0;
@@ -469,7 +481,12 @@ void createChat(){
                             command = 1;
                             break;
                         } else if(strcmp("users", buffer) == 0){
-                            printf("Number of connected users: %d\n", n_connected+1);
+                            printf("Connected users:\n");
+                            for(int i = 0;i<=maxConns; i++){
+                                if(args[i].isConnected == 0)
+                                    continue;
+                                printf("\033[38;2;%d;%d;%dm%s\033[0m\n", args[i].color.r, args[i].color.g, args[i].color.b, args[i].username);
+                            }
                             continue; 
                             break;
                         }
@@ -508,9 +525,8 @@ void createChat(){
                         }
                         //read username
                         memcpy(arg->username, buffer, bytes_received*sizeof(char));
-                        snprintf(rec_message, sizeof(rec_message), "User \033[32m%s\033[0m Joined", arg->username);
+                        snprintf(rec_message, sizeof(rec_message), "User \033[38;2;%d;%d;%dm%s\033[0m joined", arg->color.r, arg->color.g, arg->color.b, arg->username);
                         arg->status = 2;
-
                         //send history
                         // sendMessage(2, MESSAGE_HISTORY, arg->client_socket);
                         // printf("Sending history\n");
@@ -523,14 +539,21 @@ void createChat(){
                             memmove(buffer, buffer + 1, strlen(buffer));
                             if(strcmp("users", buffer) == 0){
                                 char message[50]; // Allocate enough space for your message
-                                sprintf(message, "Number of connected users: %d", n_connected+1);
+                                sprintf(message, "Connected users:", n_connected+1);
                                 sendMessage(3,message,arg->client_socket);
+                                message[0] = '\0';
+                                for(int i = 0;i<=maxConns; i++){
+                                    if(args[i].isConnected == 0)
+                                        continue;
+                                    sprintf(message, "\033[38;2;%d;%d;%dm%s\033[0m", args[i].color.r, args[i].color.g, args[i].color.b, args[i].username);
+                                    sendMessage(3,message,arg->client_socket);
+                                    message[0] = '\0';
+                                }
                                 continue;
                             }
                             break;
                         }
-                        snprintf(rec_message, sizeof(rec_message), "\033[32m%s\033[0m : %s", arg->username, buffer);
-
+                        snprintf(rec_message, sizeof(rec_message), "\033[38;2;%d;%d;%dm%s\033[0m : %s", arg->color.r, arg->color.g, arg->color.b, arg->username, buffer);
                         break;
                 }
             if(rec_message[0] == '\0'){continue;} // if there are no message
