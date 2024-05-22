@@ -10,7 +10,8 @@
 #include <errno.h>
 #include <ncurses.h>
 #include <signal.h>
-
+#include <curl/curl.h>
+#include <jansson.h>
 #include "shell.h"
 #include "ChatRoom.h"
 
@@ -24,7 +25,24 @@ typedef struct {
     int isOccupied;
 } square;
 
-void life(char *in_token) {
+void life(char *args) {
+    char *ptr = strtok(args, " ");
+    while (ptr != NULL) {
+        if (strcmp(ptr, "--help") == 0) {
+            printf("\033[33mConway's Game of Life\n");
+            printf("\033[31mRules:\033[0m\n-Any live cell with fewer than two live neighbors dies, as if by underpopulation.\n");
+            printf("-Any live cell with two or three live neighbors lives on to the next generation.\n");
+            printf("-Any live cell with more than three live neighbors dies, as if by overpopulation.\n");
+            printf("-Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.\n");
+            printf("\033[31mHow to play:\033[0m\n-mouse to place a cell\n-double click to remove\n-start with enter\n-press 'q' whenever to leave the game \033[0m\n");
+            return;
+        } else {
+            printf("Invalid argument");
+            return;
+        }
+
+    }
+    
     refresh();
     MEVENT event;
     int height, width;
@@ -270,7 +288,7 @@ void talky(char *args) {
     char *ptr = strtok(args, " ");
     while (ptr != NULL) {
         if (strcmp(ptr, "--help") == 0) {
-            printf("Help requested:\n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
+            printf("n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
             return;
         } else if (ptr[0] == '-') {
             if (strcmp(ptr, "-s") == 0) {
@@ -339,6 +357,12 @@ void compile(char *filename) {
     char *space_position = strchr(filename, ' ');
     if (space_position != NULL) {
         strcpy(args, space_position + 1);
+        char *ptr = strtok(args, " ");
+        while (ptr != NULL) {
+        if (strcmp(ptr, "--help") == 0) {
+            printf("Help requested:\n\033[0mcompile  [filename]  -l      List\ncompile  [filename]  -c      Compile\ncompile  [filename]  -e      Execute\033[0m\n");
+            return;
+        }}
         char filename_before_space[256];
         strncpy(filename_before_space, filename, space_position - filename);
         filename_before_space[space_position - filename] = '\0';
@@ -479,4 +503,112 @@ void compile(char *filename) {
     }
     if(filename_found == 0){printf("No matching file found\n");} 
     if (extension_found == 0){printf("Unknown extension\n");}
+    if(filename_found == 0&& extension_found == 0){printf("Please try typing compile [filename] --help\n");} 
+}
+
+struct MemoryStruct {
+  char *memory;
+  size_t size;
+};
+ 
+static size_t
+WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+  size_t realsize = size * nmemb;
+  struct MemoryStruct *mem = (struct MemoryStruct *)userp;
+ 
+  char *ptr = realloc(mem->memory, mem->size + realsize + 1);
+  if(!ptr) {
+    /* out of memory! */
+    printf("not enough memory (realloc returned NULL)\n");
+    return 0;
+  }
+ 
+  mem->memory = ptr;
+  memcpy(&(mem->memory[mem->size]), contents, realsize);
+  mem->size += realsize;
+  mem->memory[mem->size] = 0;
+ 
+  return realsize;
+}
+
+void chat(char *args){
+    CURL *curl;
+    CURLcode result;
+    const char *token = getenv("access_token");
+    char buffer[MAX_COMMAND_LEN];
+    char post_fields[MAX_COMMAND_LEN];
+    char api_url[MAX_COMMAND_LEN];
+
+    struct MemoryStruct chunk;
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    curl = curl_easy_init();
+    if(curl == NULL){
+        perror("HTTP request failed");
+    }
+    struct curl_slist *headers = NULL;
+    
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    sprintf(buffer, "Authorization: Bearer %s",token);
+    headers = curl_slist_append(headers, buffer);
+
+    sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": 2048,\"temperature\": 0.9,\"topP\": 1,}}", args);
+
+    //para chatgpt
+    //"{\"prompt\": \"%s\", \"max_tokens\": 60}"
+    //curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/engines/gpt-3.5-turbo/completions");
+
+    //sprintf(api_url, "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=%s", token);
+
+    curl_easy_setopt(curl, CURLOPT_URL, "https://europe-southwest1-aiplatform.googleapis.com/v1/projects/talkyterminal/locations/europe-southwest1/publishers/google/models/gemini-1.0-pro-001:streamGenerateContent");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+    result = curl_easy_perform(curl);
+
+    if(result != CURLE_OK){
+        fprintf(stderr, "Error: %s\n", curl_easy_strerror(result));
+        perror("Curl:");
+    }else{
+
+        //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
+
+        const char* json_string = chunk.memory;
+        json_error_t error;
+        json_t *root, *item, *candidates, *content, *parts, *text;
+        size_t index;
+        char res[200];
+
+        root = json_loads(json_string, 0, &error);
+
+        if(!root){
+            fprintf(stderr, "error on line %d: %s", error.line, error.text);
+        }
+
+        json_array_foreach(root, index, item){
+            candidates = json_object_get(item, "candidates");
+            content = json_object_get(json_array_get(candidates, 0), "content");
+            parts = json_object_get(content, "parts");
+            text = json_object_get(json_array_get(parts, 0), "text");
+            strcat(res, json_string_value(text));
+        }
+        printf("%s\n",res);
+        res[0] = '\0';
+        //strcpy(res, "");
+        json_decref(root);
+
+    }
+    free(chunk.memory);
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+    post_fields[0] = '\0';
+    buffer[0] = '\0';
 }
