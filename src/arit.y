@@ -20,6 +20,11 @@ void printcwd(){
 		perror("getcwd() error");
 	}
 }
+
+char[] commandlist[] = {
+	"cd", "clear", "ls", "pwd", "mkdir", "touch", "echo", "compile", "talky", "life", "cp", "chat","mv", "rm"
+}
+
 %}
 
 %start programa
