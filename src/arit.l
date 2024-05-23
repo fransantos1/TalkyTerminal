@@ -43,6 +43,12 @@ cp          { yylval.comval =malloc(yyleng+1);
 chat          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return CHAT;}   
+mv          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return MV;}   
+rm          { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return RM;}   
 
 [a-zA-Z0-9./-]+  { yylval.str = malloc(yyleng + 1); 
                     strcpy(yylval.str, yytext); 

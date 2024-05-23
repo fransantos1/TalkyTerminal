@@ -5,6 +5,8 @@
 void test();
 void cd(char *in_token);
 void shell_ls(char *args);
+void shell_mv(char *args);
+void shell_rm(char *args);
 void shell_clear(char *args);
 void test();
 void pwd();

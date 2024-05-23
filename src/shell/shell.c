@@ -100,7 +100,7 @@ void life(char *args) {
 
                 for (int i = 0; i < height; i++) {
                     for (int j = 0; j < width; j++) {
-                        int counter = 0; // SEE neighbours
+                        int counter = 0; // neighbours count
                         for (int n = i - 1; n <= i + 1; n++) {
                             for (int m = j - 1; m <= j + 1; m++) {
                                 if (n == i && m == j) continue; 
@@ -275,6 +275,46 @@ void shell_echo(char *args){
     int result = system(command);
     if(result == -1){
         perror("echo");
+    }
+}
+
+void shell_mv(char *args){
+    if (args == NULL) {
+        printf("Usage: mv <file/directory> <file/directory>, mv <directory>/<new name>, mv <file/directory> <new name> \n");
+        return;
+    }
+
+     if(strlen(args)> MAX_COMMAND_LEN){
+        printf("Arguments exceed maximum length!");
+        return;
+    }
+
+    char path[MAX_COMMAND_LEN];
+    strcpy(path, "mv ");
+    strcat(path, args);
+    int result = system(path);
+    if(result == -1){
+        perror("mv");
+    }
+}
+
+void shell_rm(char *args){
+    if (args == NULL) {
+        printf("Usage: rm <file/directory> \n");
+        return;
+    }
+
+     if(strlen(args)> MAX_COMMAND_LEN){
+         printf("Arguments exceed maximum length!");
+        return;
+    }
+
+    char path[MAX_COMMAND_LEN];
+    strcpy(path, "rm ");
+    strcat(path, args);
+    int result = system(path);
+    if(result == -1){
+        perror("rm");
     }
 }
 
@@ -585,7 +625,7 @@ void chat(char *args){
         json_error_t error;
         json_t *root, *item, *candidates, *content, *parts, *text;
         size_t index;
-        char res[200];
+        char res[100000];
 
         root = json_loads(json_string, 0, &error);
 
@@ -602,7 +642,6 @@ void chat(char *args){
         }
         printf("%s\n",res);
         res[0] = '\0';
-        //strcpy(res, "");
         json_decref(root);
 
     }
