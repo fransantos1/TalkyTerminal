@@ -333,8 +333,10 @@ void talky(char *args) {
         } else if (ptr[0] == '-') {
             if (strcmp(ptr, "-s") == 0) {
                 createChat();
+                return;
             } else if (strcmp(ptr, "-c") == 0) {
                 joinChat();
+                return;
             } else {
                 printf("Parameter '%s' not recognized\n", ptr);
                 return;
@@ -345,6 +347,7 @@ void talky(char *args) {
         }
         ptr = strtok(NULL, " ");
     }
+    
 }
 
 struct FileType {
@@ -576,7 +579,8 @@ void chat(char *args){
     CURL *curl;
     CURLcode result;
     int maxTokens = 2048;
-    const char *token = getenv("access_token");
+    //const char *token = getenv("access_token");
+    const char *token = "";
     char buffer[MAX_COMMAND_LEN];
     char post_fields[MAX_COMMAND_LEN];
     char api_url[MAX_COMMAND_LEN];

@@ -19,22 +19,24 @@
 #define PASSWORD_SIZE 5
 #define MAX_USERNAME_SIZE 10
 #define MAX_SERVER_SIZE 100
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 8192 
 
 #define MAX_MESSAGE_SIZE 100
 #define MESSAGE_HISTORY_SIZE 10
 
-char MESSAGE_HISTORY[MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE];
 
-// todo fix bug when enter with empty string, either the cmd goes doen or it prints a line
-// todo insert port manually
-// todo more pleasent terminal interface
-// todo instead of showing the number of users, show the name
+// fix bug when enter with empty string, either the cmd goes doen or it prints a line
+// instead of showing the number of users, show the name
+// todo when leaving chat, it sends 2 /n
+// todo send chat messages history
+// todo more pleasent terminal interface(ncursors)
 // todo final review
 // todo send files
 // todo kick/ban users
 // todo encryption keys, public/private keys
 // todo Hash Password
+
+
 
 
 int client_epoll;
@@ -64,29 +66,50 @@ int command = 0; //for own 0- none/ 1-leave
 
 
 
-
-char* CreateUser(){
-    char* username = malloc(MAX_USERNAME_SIZE*sizeof(char)); //! FREE USERNAME
-    if(username == NULL){
+char* CreateUser() {
+    char* username = malloc(MAX_USERNAME_SIZE * sizeof(char)); // Allocate memory for the username
+    if (username == NULL) {
         return NULL;
     }
-    printf("Insert a username:");
-    scanf("%19s", username);
-    return username;
+    printf("Insert a username: ");
     
+    if (fgets(username, MAX_USERNAME_SIZE, stdin) != NULL) {
+        if (strchr(username, '\n') == NULL) {
+            while ((getchar()) != '\n');
+        } else {
+            username[strcspn(username, "\n")] = '\0';
+        }
+    }
+    return username;
 }
 void joinChat(){
     ThreadArgs args;
     int status, valread;
     struct sockaddr_in serv_addr;
     char* username = CreateUser();
+    if(username == NULL){
+        printf("ERROR allocating memory\n");
+        free(username);
+        return;  
+    }
     char *ip = malloc(20*sizeof(char));
     printf("ip:");
-    scanf("%s", ip);
+    if (fgets(ip, 20, stdin) != NULL) {
+
+        if (strchr(ip, '\n') == NULL) {
+            while ((getchar()) != '\n');
+        } else {
+            ip[strcspn(ip, "\n")] = '\0';
+        }
+    }
     //strcpy(ip, "127.0.0.1");
     char buffer[BUFFER_SIZE] = { 0 };
+
+
     if ((args.client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
+        free(ip);
+        free(username);
         return;
     }
     serv_addr.sin_family = AF_INET;
@@ -94,8 +117,9 @@ void joinChat(){
     // Convert IPv4 and IPv6 addresses from text to binary
     if (inet_pton(AF_INET, ip, &serv_addr.sin_addr)
         <= 0) {
-        printf(
-            "\nInvalid address/ Address not supported \n");
+        printf( "Invalid address/ Address not supported\n");
+        free(ip);
+        free(username);
         return;
     }
     int num_fds;
@@ -103,14 +127,18 @@ void joinChat(){
 
     client_epoll = epoll_create1(0);
     if (client_epoll == -1) {
+        free(username);
+        free(ip);
         perror("epoll_create1");
-        exit(EXIT_FAILURE);
+        return;
     }
 
 
     if ((status= connect(args.client_socket, (struct sockaddr*)&serv_addr,
         sizeof(serv_addr)))< 0) {
-        printf("\nConnection Failed \n");
+        printf("Connection Failed\n");
+        free(username);
+        free(ip);
         return;
     }
     struct epoll_event event;
@@ -118,21 +146,27 @@ void joinChat(){
     event.data.fd = 0;
     if (epoll_ctl(client_epoll, EPOLL_CTL_ADD, 0, &event) == -1) {
         perror("epoll_ctl");
-        exit(EXIT_FAILURE);
+        free(username);
+        free(ip);
+        return;
     }
     struct epoll_event event1;
     event1.events = EPOLLIN;
     event1.data.fd = args.client_socket;
     if (epoll_ctl(client_epoll, EPOLL_CTL_ADD, args.client_socket, &event1) == -1) {
         perror("epoll_ctl");
-        exit(EXIT_FAILURE);
+        free(username);
+        free(ip);
+        return;
     }
     while(command != 1){
         memset(buffer, 0, sizeof(buffer));
         int num_fds = epoll_wait(client_epoll, events, 2, -1);
         if (num_fds == -1) {
             perror("epoll_wait");
-            exit(EXIT_FAILURE);
+            free(username);
+            free(ip);
+            return;
         }
         Servermsg message;
         for (int n = 0; n < num_fds; ++n) {
@@ -141,6 +175,11 @@ void joinChat(){
             }
             if(events[n].data.fd == 0){
                 valread = read(events[n].data.fd, buffer, BUFFER_SIZE - 1);
+                if(buffer[0] == '\n'){
+                    printf("\033[1A");
+                    printf("\033[K");
+                    continue;
+                }
                 buffer[strcspn(buffer, "\n")] = '\0'; 
                 if(strlen(buffer) < 1) {
                     continue;
@@ -185,7 +224,7 @@ void joinChat(){
     command = 0;
     close(args.client_socket);
     free(ip);
-    MESSAGE_HISTORY[0] = '\0';
+    free(username);
     return ;
 }
 
@@ -269,8 +308,8 @@ void *AcceptConn(void *args){
             event.data.ptr = (void*)&threadArgs[availableIndex];
             if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tempsocket, &event) == -1) {
                 perror("epoll_ctl");
-                exit(EXIT_FAILURE);
                 close(event.data.fd);
+                continue;
             }
 
             send(tempsocket, &msg, sizeof(msg), 0);
@@ -307,40 +346,39 @@ void sendMessage(int type,char *in_rec_message, int socket){
 void createChat(){
     srand(time(NULL));
     int option = 0;
+    char *username = CreateUser();
     printf("Choose type:\n1->private\n2->public\n");
-    int tempOption;
+    int tempInput;
     while (option == 0) {
-        if (scanf("%d", &tempOption) != 1) {
+        if (scanf("%d", &tempInput) != 1) {
             printf("Invalid input\n");
             while (getchar() != '\n');
             continue;
         }
-        if (tempOption != 1 && tempOption != 2) {
+        if (tempInput != 1 && tempInput != 2) {
             printf("Not recognized\n");
             continue;
         }
-        option = tempOption;
+        while (getchar() != '\n');
+        option = tempInput;
     }
     printf("Max Conns:\n");
-    tempOption = 0;
+    tempInput = 0;
     while (1) {
-        if (scanf("%d", &tempOption) != 1) {
+        if (scanf("%d", &tempInput) != 1) {
             printf("Invalid input\n");
             while (getchar() != '\n');
             continue;
         }
-        if (tempOption == 0) {
+        if (tempInput == 0) {
             printf("Not valid\n");
             continue;
             while (getchar() != '\n');
         }
-        maxConns = tempOption;
+        while (getchar() != '\n');
+        maxConns = tempInput;
         break;
     }
-
-
-
-
     isPrivate = 0;
     int keys_len = sizeof(keys) / sizeof(keys[0]);
     char password[PASSWORD_SIZE];
@@ -352,8 +390,7 @@ void createChat(){
         }
         password[PASSWORD_SIZE] = '\0';
     }
-    //! max people connected, etc(already made but in discord)
-    char *username = CreateUser();
+    
 
     ThreadArgs args[maxConns+1]; // struct of incomming connections +1 for own 
 
@@ -363,11 +400,10 @@ void createChat(){
     epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
         perror("epoll_create1");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
 
-
-    MESSAGE_HISTORY[0] = '\0';
    
     args[maxConns].isConnected = 1;
     args[maxConns].client_socket = 0;
@@ -384,7 +420,8 @@ void createChat(){
     
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, 0, &event) == -1) {
         perror("epoll_ctl");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
 
     for(int i = 0;i<maxConns;i++){
@@ -402,7 +439,8 @@ void createChat(){
 
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
 
     // Forcefully attaching socket to the port 8080
@@ -410,7 +448,8 @@ void createChat(){
                    SO_REUSEADDR , &opt,
                    sizeof(opt))) {
         perror("setsockopt");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
@@ -421,26 +460,44 @@ void createChat(){
              sizeof(address))
         < 0) {
         perror("bind failed");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
     if (listen(server_socket, 3) < 0) {
         perror("listen");
-        exit(EXIT_FAILURE);
+        free(username);
+        return;
     }
+
+    int realMessageSize = MAX_MESSAGE_SIZE+MAX_USERNAME_SIZE+30; // 30 for color and formatting
+    char messageHistory[MESSAGE_HISTORY_SIZE][realMessageSize+1];
+    for(int i = 0; i < MESSAGE_HISTORY_SIZE; i++){
+        messageHistory[i][0] = '\0';
+    }
+    int history_index = 0;
 
     system("clear");
     pthread_t acceptClient;
     pthread_create(&acceptClient, NULL, AcceptConn, (void*) &args);
     char rec_message[MAX_MESSAGE_SIZE];
-    int history_index = 0;
+    
     printf("Server Port: %d\n", PORT);
     if(isPrivate == 1)
         printf("Password: %s\n",password);
+
+    char *tempMessage = malloc(150);
+    snprintf(tempMessage, 150, "User \033[38;2;%d;%d;%dm%s\033[0m joined", args[maxConns].color.r, args[maxConns].color.g, args[maxConns].color.b, args[maxConns].username);
+    printf("%s\n",tempMessage);
+    strcpy(messageHistory[history_index],tempMessage);
+    free(tempMessage);
+    history_index++;
+    
     while(command != 1){
         num_fds = epoll_wait(epoll_fd, events, maxConns+1, -1);
         if (num_fds == -1) {
             perror("epoll_wait");
-            exit(EXIT_FAILURE);
+            free(username);
+            return;
         }
 
         for (int n = 0; n < num_fds; ++n) {
@@ -462,6 +519,14 @@ void createChat(){
                     broadcast(rec_message, (void*) &args);
                     continue;
                 }
+                if(buffer[0] == '\n'){
+                    if(arg->isHost == 1){
+                        printf("\033[1A");
+                        printf("\033[K");
+                    }
+                    continue;
+                }
+               
 
                 if (buffer[bytes_received - 1] == '\n')
                     buffer[bytes_received - 1] = '\0';
@@ -472,8 +537,10 @@ void createChat(){
                     continue;
                 }
                 if(arg->isHost == 1){
+                    
                     printf("\033[1A");
                     printf("\033[K");
+                    
                     if(buffer[0] == '/')
                     { //------------------------------------------------ analise function here
                         memmove(buffer, buffer + 1, strlen(buffer));
@@ -527,10 +594,18 @@ void createChat(){
                         memcpy(arg->username, buffer, bytes_received*sizeof(char));
                         snprintf(rec_message, sizeof(rec_message), "User \033[38;2;%d;%d;%dm%s\033[0m joined", arg->color.r, arg->color.g, arg->color.b, arg->username);
                         arg->status = 2;
+
+
                         //send history
-                        // sendMessage(2, MESSAGE_HISTORY, arg->client_socket);
-                        // printf("Sending history\n");
-                        // printf("%s\n",MESSAGE_HISTORY);
+                        int tempIndex = history_index;
+                        do{
+                            if(tempIndex == MESSAGE_HISTORY_SIZE){
+                                tempIndex = 0;
+                            }
+                            sendMessage(2, messageHistory[tempIndex], arg->client_socket);
+                            tempIndex ++;
+                        }
+                        while(tempIndex != history_index);
                         break;
                     case 2:
                         //read message
@@ -558,15 +633,12 @@ void createChat(){
                 }
             if(rec_message[0] == '\0'){continue;} // if there are no message
             broadcast(rec_message, (void*) &args);
-            if(strlen(MESSAGE_HISTORY)+ strlen(rec_message)>=MESSAGE_HISTORY_SIZE*MAX_MESSAGE_SIZE){
-                printf("no more space in history");
-                continue;
+
+            if(history_index == MESSAGE_HISTORY_SIZE){
+                history_index = 0;
             }
-            // char *tmp = strdup(rec_message);
-            // strcpy(rec_message, "\n"); //Put str2 or anyother string that you want at the begining
-            // strcat(rec_message, tmp);  //concatenate previous str1
-            // strcat(MESSAGE_HISTORY, rec_message);
-            // free(tmp); //free the memory
+            strcpy(messageHistory[history_index],rec_message);
+            history_index ++;
             }
         }
 
@@ -574,35 +646,18 @@ void createChat(){
     command = 0;
     close(epoll_fd);
     close(epoll_fd1);
+    
     pthread_join(acceptClient, NULL);
     for(int i = 0;i<maxConns; i++){
         if(args[i].isConnected == 0){continue;}
         close(args[i].client_socket);
     }
     close(server_socket);
-    MESSAGE_HISTORY[0] = '\0';
+    free(username);
     return;
 }
 
 
-
-
-// int main(int argc, char *argv[]) {
-//     char input[10]; // Assuming the input won't exceed 100 characters
-//     printf("\033[32m------------WELCOME TO CHATROOMS :D--------------\033[0m\n");
-//     printf("Select Mode JOIN/CREATE: ");
-//     fgets(input, sizeof(input), stdin);
-//     input[strcspn(input, "\n")] = '\0'; 
-//     if(strcmp(input, "JOIN") == 0 ){
-//         joinChat();
-//     }else if(strcmp(input, "CREATE") == 0){
-//         createChat();
-//     }else{
-//         printf("Not a valid input");
-//     }
-
-//     return 0;
-// }
 
 
 
