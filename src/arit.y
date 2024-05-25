@@ -28,7 +28,7 @@ void printcwd(){
 %}
 
 %start programa
-%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP LIFE CHAT MV RM
+%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP LIFE CHAT MV RM CALC
 %token <str> ARGS 
 %type <str> argument
 %type <comval> command
@@ -82,6 +82,8 @@ command: CD argument
 			{shell_mv($2); }
 		| CHAT argument
 			{chat($2); }
+		| CALC
+			{calc($1);}
         ;
 
 argument: ARGS 	

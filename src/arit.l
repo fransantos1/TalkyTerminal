@@ -49,6 +49,9 @@ mv          { yylval.comval =malloc(yyleng+1);
 rm          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return RM;}   
+"="[a-zA-Z0-9./()+-./*]+    {  yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return CALC; }
 
 [a-zA-Z0-9./-]+  { yylval.str = malloc(yyleng + 1); 
                     strcpy(yylval.str, yytext); 

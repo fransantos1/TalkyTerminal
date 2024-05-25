@@ -18,4 +18,5 @@ void talky(char *args);
 void shell_cp(const char *args);
 void life(char *args);
 void chat(char *args);
+void calc(char *args);
 #endif

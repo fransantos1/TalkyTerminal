@@ -14,6 +14,7 @@
 #include <jansson.h>
 #include "shell.h"
 #include "ChatRoom.h"
+#include <math.h>
 
 //#include <utime.h>
 
@@ -356,8 +357,7 @@ struct FileType {
     const char *compile;
     const char *execute;
 };
-char* replaceWord(const char* s, const char* oldW, 
-                const char* newW){ 
+char* replaceWord(const char* s, const char* oldW,const char* newW){ 
     char* result; 
     int i, cnt = 0; 
     int newWlen = strlen(newW); 
@@ -382,38 +382,58 @@ char* replaceWord(const char* s, const char* oldW,
     result[i] = '\0'; 
     return result; 
 } 
-void compile(char *filename) {
+void compile(char *args) {
+    char *ptr = strtok(args, " ");
+    int option = -1; //0 List, 1 Compile, 2 Execute
+    while (ptr != NULL) {
+        if (strcmp(ptr, "--help") == 0) {
+            printf("Help requested:\n\033[0mcompile  -l [filename]        List\ncompile -c [filename]        Compile\ncompile -e [filename]        Execute\033[0m\n");
+            return;
+        } else if (ptr[0] == '-') {
+            if (strcmp(ptr, "-l") == 0) {
+                option = 0;
+            } else if (strcmp(ptr, "-c") == 0) {
+                option = 1;
+            } else if (strcmp(ptr, "-e") == 0) {
+                option = 2;
+            } else {
+                printf("Parameter '%s' not recognized\n", ptr);
+                return;
+            }
+            ptr = strtok(NULL, " ");
+            if(ptr == NULL){
+                printf("Wrong Usage: File not specified\n", ptr);
+                return;
+            }
+            break;
+        } else {
+            printf("Wrong Usage: Mode not specified\n", ptr);
+            return;
+        }
+        ptr = strtok(NULL, " ");
+    }
+
+    char *filename = ptr;
     DIR *dir;
     struct dirent *entry;
     char extension[256] = "";
     char filename_copy[256];
+
     char extension_list[256][256];
+    for (int i = 0; i < 256; ++i) {
+        extension_list[i][0] = '\0';
+    }
     int extension_count = 0; 
+
     int filename_found = 0;
     int extension_found = 0;
     size_t suffix_found_length = 0;
     char suffix_found[256] = "";
     char command[MAX_COMMAND_LEN];
     int result = 0;
-    char full_filename[1024];
-    char args[200];     
-    char *space_position = strchr(filename, ' ');
-    if (space_position != NULL) {
-        strcpy(args, space_position + 1);
-        char *ptr = strtok(args, " ");
-        while (ptr != NULL) {
-        if (strcmp(ptr, "--help") == 0) {
-            printf("Help requested:\n\033[0mcompile  [filename]  -l      List\ncompile  [filename]  -c      Compile\ncompile  [filename]  -e      Execute\033[0m\n");
-            return;
-        }}
-        char filename_before_space[256];
-        strncpy(filename_before_space, filename, space_position - filename);
-        filename_before_space[space_position - filename] = '\0';
-        strcpy(filename, filename_before_space);
-    }
-    for (int i = 0; i < 256; ++i) {
-        extension_list[i][0] = '\0';
-    }
+    char full_filename[1024]; 
+
+
     if (!strlen(extension)) {
         dir = opendir(".");
         if (!dir) {
@@ -460,6 +480,11 @@ void compile(char *filename) {
         }
         closedir(dir);
     }
+
+    if(filename_found == 0){
+        printf("No matching file found\n");
+        return;
+    } 
     struct FileType fileTypes[] = {
         {"c", "C file", "gcc -o file file.c", "./file"}, 
         {"cs", "Visual C# file", "mcs -out: file.exe file.cs", "mono file.exe"},
@@ -487,66 +512,72 @@ void compile(char *filename) {
         strcpy(full_filename, filename);
     }
     if (extension_count > 1){
-        extension_found = 1;
-        printf("%d", extension_count);
-        printf(" files found \n");
+        printf("%d files found\n", extension_count);
         for (size_t i = 0; i < extension_count; i++){
             printf(full_filename);
             printf(".");
             printf(extension_list[i]);
-            printf("\n");
+            printf(" ");
         }
-        printf("please try again with the specific file\n");
-    }else{
-        for (size_t j = 0; j < sizeof(fileTypes) / sizeof(fileTypes[0]); ++j) {
-            if (strcmp(extension_list[0], fileTypes[j].extension) == 0) {
-                extension_found = 1;
-                char part[1024];
-                strcpy(part, full_filename);
-                if(args == NULL){ printf("args is null");}
-                if(strcmp(args, "-l") == 0){
-                    strcat(full_filename, ".");
-                    strcat(full_filename, fileTypes[j].extension);
-                    strcat(full_filename, " this is a ");
-                    strcat(full_filename, fileTypes[j].extension);
-                    strcat(full_filename, "\n");
-                    printf(full_filename);
-                }else if(fileTypes[j].compile == NULL && fileTypes[j].execute == NULL &&
-                        (strcmp(args, "") == 0 || strcmp(args, "-c") == 0 || strcmp(args, "-e") == 0)){
-                    strcpy(part, full_filename);
-                    strcat(full_filename, ".");
-                    strcat(full_filename, fileTypes[j].extension);
-                    strcat(full_filename, " this is a ");
-                    strcat(full_filename, fileTypes[j].extension);
-                    strcat(full_filename, " file at the momment we are unable to compile this type of file \n");
-                    printf(full_filename);
-                }else if(strcmp(args, "") == 0 || strcmp(args, "-c") == 0 || strcmp(args, "-e") == 0){
-                    char command[1024];
-                    strcpy(command, fileTypes[j].compile);
-                    if (strcmp(fileTypes[j].compile, "") != 0) {
-                        strcpy(command, fileTypes[j].compile);
-                        char* resulte  = replaceWord(command,"file", part);
-                        int result = system(resulte);
-                        if (result == 0) {
-                            printf("Compilation successful\n");
-                        } 
-                    }else if( strcmp(args, "-e") == 0){
-                        strcpy(command, fileTypes[j].execute);
-                        char* resulte  = replaceWord(command,"file", part);
-                        int result = system(resulte);
-                        if (result == 0) {
-                            printf("Execution successful\n");
-                        }
-                    }else{printf("File can only be executed not compiled try adding -e at the end\n");}
-                }else{
-                    printf("unknown option please try again\n");
-                }                 
-            }        
-        }
+        printf("\nplease try again with the specific file\n");
+        return;
     }
-    if(filename_found == 0){printf("No matching file found\n");} 
-    if (extension_found == 0){printf("Unknown extension\n");}
-    if(filename_found == 0&& extension_found == 0){printf("Please try typing compile [filename] --help\n");} 
+
+    for (size_t j = 0; j < sizeof(fileTypes) / sizeof(fileTypes[0]); ++j) {
+        if (strcmp(extension_list[0], fileTypes[j].extension) != 0) 
+            continue;
+
+        extension_found = 1;
+        char part[1024];
+        strcpy(part, full_filename);
+        if(option == 0){
+            strcat(full_filename, ".");
+            strcat(full_filename, fileTypes[j].extension);
+            strcat(full_filename, " this is a ");
+            strcat(full_filename, fileTypes[j].extension);
+            strcat(full_filename, "\n");
+            printf(full_filename);
+            return;
+        }
+        if(fileTypes[j].compile == ""){
+            strcpy(part, full_filename);
+            strcat(full_filename, ".");
+            strcat(full_filename, fileTypes[j].extension);
+            strcat(full_filename, " this is a ");
+            strcat(full_filename, fileTypes[j].extension);
+            strcat(full_filename, " file at the momment we are unable to compile this type of file \n");
+            printf(full_filename);
+            return;
+        }
+        char command[1024];
+        strcpy(command, fileTypes[j].compile);
+        char* resulte  = replaceWord(command,"file", part);
+        int result = system(resulte);
+        if (result == 0) {
+            printf("Compilation successful\n");
+        } 
+            
+        
+        if(option == 2){
+            if(fileTypes[j].execute == ""){
+                strcpy(part, full_filename);
+                strcat(full_filename, ".");
+                strcat(full_filename, fileTypes[j].extension);
+                strcat(full_filename, " this is a ");
+                strcat(full_filename, fileTypes[j].extension);
+                strcat(full_filename, " file at the momment we are unable to compile this type of file \n");
+                printf(full_filename);
+                return;
+            }
+            strcpy(command, fileTypes[j].execute);
+            char* resulte  = replaceWord(command,"file", part);
+            int result = system(resulte);
+            if (result == 0) {
+                printf("Execution successful\n");
+            }
+        }                
+    }        
+    if(extension_found == 0){printf("Unknown extension\n");} 
 }
 
 struct MemoryStruct {
@@ -576,6 +607,15 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 }
 
 void chat(char *args){
+    char *ptr = strtok(args, " ");
+    if (strcmp(ptr, "--help") == 0) {
+        printf("Help requested:\n\033[0mnot Done yet\033[0m\n");
+        return;
+    } else if (ptr[0] == '-') {
+        printf("Parameter '%s' not recognized\n", ptr);
+        return;
+    }
+
     CURL *curl;
     CURLcode result;
     int maxTokens = 2048;
@@ -683,4 +723,13 @@ void chat(char *args){
     curl_global_cleanup();
     post_fields[0] = '\0';
     buffer[0] = '\0';
+}
+
+
+
+
+void calc(char *args){
+
+
+
 }

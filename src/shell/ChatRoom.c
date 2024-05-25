@@ -27,17 +27,15 @@
 
 // fix bug when enter with empty string, either the cmd goes doen or it prints a line
 // instead of showing the number of users, show the name
-// todo when leaving chat, it sends 2 /n
-// todo send chat messages history
+// when leaving chat, it sends 2 /n
+// send chat messages history
+
 // todo more pleasent terminal interface(ncursors)
 // todo final review
 // todo send files
 // todo kick/ban users
 // todo encryption keys, public/private keys
 // todo Hash Password
-
-
-
 
 int client_epoll;
 
