@@ -21,9 +21,9 @@ void printcwd(){
 	}
 }
 
-char[] commandlist[] = {
-	"cd", "clear", "ls", "pwd", "mkdir", "touch", "echo", "compile", "talky", "life", "cp", "chat","mv", "rm"
-}
+// char[] commandlist[] = {
+// 	"cd", "clear", "ls", "pwd", "mkdir", "touch", "echo", "compile", "talky", "life", "cp", "chat","mv", "rm"
+// }
 
 %}
 

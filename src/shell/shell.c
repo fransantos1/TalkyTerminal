@@ -575,6 +575,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 void chat(char *args){
     CURL *curl;
     CURLcode result;
+    int maxTokens = 2048;
     const char *token = getenv("access_token");
     char buffer[MAX_COMMAND_LEN];
     char post_fields[MAX_COMMAND_LEN];
@@ -591,18 +592,12 @@ void chat(char *args){
         perror("HTTP request failed");
     }
     struct curl_slist *headers = NULL;
-    
+
     headers = curl_slist_append(headers, "Content-Type: application/json");
     sprintf(buffer, "Authorization: Bearer %s",token);
     headers = curl_slist_append(headers, buffer);
 
-    sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": 2048,\"temperature\": 0.9,\"topP\": 1,}}", args);
-
-    //para chatgpt
-    //"{\"prompt\": \"%s\", \"max_tokens\": 60}"
-    //curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/engines/gpt-3.5-turbo/completions");
-
-    //sprintf(api_url, "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=%s", token);
+    sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": %d,\"temperature\": 0.9,\"topP\": 1,}}", args, maxTokens);
 
     curl_easy_setopt(curl, CURLOPT_URL, "https://europe-southwest1-aiplatform.googleapis.com/v1/projects/talkyterminal/locations/europe-southwest1/publishers/google/models/gemini-1.0-pro-001:streamGenerateContent");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -617,34 +612,68 @@ void chat(char *args){
     if(result != CURLE_OK){
         fprintf(stderr, "Error: %s\n", curl_easy_strerror(result));
         perror("Curl:");
-    }else{
-
-        //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
-
-        const char* json_string = chunk.memory;
-        json_error_t error;
-        json_t *root, *item, *candidates, *content, *parts, *text;
-        size_t index;
-        char res[100000];
-
-        root = json_loads(json_string, 0, &error);
-
-        if(!root){
-            fprintf(stderr, "error on line %d: %s", error.line, error.text);
-        }
-
-        json_array_foreach(root, index, item){
-            candidates = json_object_get(item, "candidates");
-            content = json_object_get(json_array_get(candidates, 0), "content");
-            parts = json_object_get(content, "parts");
-            text = json_object_get(json_array_get(parts, 0), "text");
-            strcat(res, json_string_value(text));
-        }
-        printf("%s\n",res);
-        res[0] = '\0';
-        json_decref(root);
-
+        return;
     }
+    //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
+    const char* json_string = chunk.memory;
+    json_error_t error;
+    json_t *root;
+    size_t index;
+    char *res = malloc(maxTokens*8+1); //+1 for null terminator
+    if (res == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return;
+    }
+    res[0] = '\0';
+    root = json_loads(json_string, 0, &error);
+    if (!root) {
+        fprintf(stderr, "Error parsing JSON: %s\n", error.text);
+        return;
+    }
+
+    if (!json_is_array(root)) {
+        json_decref(root);
+        return;
+    }
+
+    // Iterate through the array
+    for (size_t i = 0; i < json_array_size(root); i++) {
+        json_t *item = json_array_get(root, i);
+        json_t *candidates = json_object_get(item, "candidates");
+        if (!json_is_array(candidates)) continue;
+
+        for (size_t j = 0; j < json_array_size(candidates); j++) {
+            json_t *candidate = json_array_get(candidates, j);
+            json_t *content = json_object_get(candidate, "content");
+
+            if (json_is_object(content)) {
+                json_t *parts = json_object_get(content, "parts");
+
+                if (json_is_array(parts)) {
+                    for (size_t k = 0; k < json_array_size(parts); k++) {
+                        json_t *part = json_array_get(parts, k);
+                        json_t *text = json_object_get(part, "text");
+                
+                        if (json_is_string(text)) {
+                            strcat(res, json_string_value(text));
+                        }
+                        json_decref(part);
+                        json_decref(text);
+                    }
+                }
+                json_decref(parts);
+            }
+            json_decref(candidate);
+            json_decref(content);
+
+        }
+        json_decref(item);
+        json_decref(candidates);
+    }
+
+    json_decref(root);
+    printf("%s\n",res);
+    free(res);
     free(chunk.memory);
     curl_easy_cleanup(curl);
     curl_global_cleanup();
