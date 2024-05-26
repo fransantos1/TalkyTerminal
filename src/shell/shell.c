@@ -380,6 +380,7 @@ void compile(char *args) {
             printf("        compile -l filename  \033[33mList\033[0m\n");
             printf("        compile -c filename  \033[33mCompile\033[0m\n");
             printf("        compile -e filename  \033[33mCompile and Execute\033[0m\n");
+            printf("        compile -ai filename  \033[33mAI indetify\033[0m\n");
             printf("\n");
             return;
         } else if (ptr[0] == '-') {
@@ -427,7 +428,7 @@ void compile(char *args) {
     char command[MAX_COMMAND_LEN];
     int result = 0;
     char full_filename[1024]; 
-    char text [4080];
+    char text [1024];
 
     if (!strlen(extension)) {
         dir = opendir(".");
@@ -537,13 +538,44 @@ void compile(char *args) {
         if(option == 3){
             strcat(full_filename, ".");
             strcat(full_filename, extension_list[0]);
-            strcpy(text, "Can you tell me the extension of the file ");
-            strcat(text, full_filename);
-            strcat(text, "and what type of file it is?");
+
+            size_t fileSize =500;
+            FILE *file = fopen(full_filename, "r");
+            if (file == NULL) {
+                perror("Failed to open file");
+                return;
+            }
+            char *buffer = (char *)malloc((fileSize + 1) * sizeof(char));
+            if (buffer == NULL) {
+                perror("Failed to allocate memory");
+                fclose(file);
+                return;
+            }
+            size_t bytesRead = fread(buffer, sizeof(char), fileSize, file);
+            if (bytesRead < fileSize && ferror(file)) {
+                perror("Failed to read from file");
+                free(buffer);
+                fclose(file);
+                return ;
+            }
+            buffer[bytesRead] = '\0';
+            fclose(file);
+            int i = 0;
+            while(buffer[i] != '\0'){
+                if(buffer[i] == '\n' || buffer[i] == '\"' ){
+                    buffer[i] = ' ';
+                }
+                i++;
+            }
+            strcpy(text, "what programing language is this, and describe it? ");
+            strcat(text, buffer);
             chat(text);
+            free(buffer);
+            
             return;
         }
-        if(fileTypes[j].compile == ""){
+
+        if(fileTypes[j].compile == "" && option == 1){
             strcpy(part, full_filename);
             strcat(full_filename, ".");
             strcat(full_filename, fileTypes[j].extension);
@@ -553,14 +585,16 @@ void compile(char *args) {
             printf(full_filename);
             return;
         }
-        char command[1024];
-        strcpy(command, fileTypes[j].compile);
-        char* resulte  = replaceWord(command,"file", part);
-        int result = system(resulte);
-        if (result == 0) {
-            printf("Compilation successful\n");
-        } 
-            
+
+        if(fileTypes[j].compile != "" ){
+            char command[1024];
+            strcpy(command, fileTypes[j].compile);
+            char* resulte  = replaceWord(command,"file", part);
+            int result = system(resulte);
+            if (result == 0) {
+                printf("Compilation successful\n");
+            } 
+        }
         
         if(option == 2){
             if(fileTypes[j].execute == ""){
@@ -597,7 +631,6 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
  
   char *ptr = realloc(mem->memory, mem->size + realsize + 1);
   if(!ptr) {
-    /* out of memory! */
     printf("not enough memory (realloc returned NULL)\n");
     return 0;
   }
@@ -611,59 +644,52 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 }
 
 void chat(char *args) {
-    CURL *curl;
+
     CURLcode result;
     //const char *token = getenv("access_token");
-    const char *token="ya29.a0AXooCgu9sfDA2TNFZQwOvH_C-DNh43RtEhpZVuTDhsfC0dO0A13UdxzJa5uDuBeqcWmorub9tKB0i-1VLLTt2K5lANAH7U0wKmSzd2B5Hsej0trJ5z0uyef5fuymdrbuJbwBcjMwhykYaS5hi9agKsiDenjES4eDipsaCgYKAVgSARISFQHGX2MikxhBIF8gal2Ghu8tw3ZggA0170";
+    const char *token="";
     char buffer[MAX_COMMAND_LEN];
     char post_fields[MAX_COMMAND_LEN];
-    char api_url[MAX_COMMAND_LEN];
-
     struct MemoryStruct chunk;
     chunk.memory = malloc(1);
     chunk.size = 0;
-
     curl_global_init(CURL_GLOBAL_ALL);
-
-    curl = curl_easy_init();
+    CURL *curl = curl_easy_init();
     if(curl == NULL){
         perror("HTTP request failed");
+        return;
     }
     struct curl_slist *headers = NULL;
-    
     headers = curl_slist_append(headers, "Content-Type: application/json");
     sprintf(buffer, "Authorization: Bearer %s",token);
     headers = curl_slist_append(headers, buffer);
-
     sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": 2048,\"temperature\": 0.9,\"topP\": 1,}}", args);
-
-    //para chatgpt
-    //"{\"prompt\": \"%s\", \"max_tokens\": 60}"
-    //curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/engines/gpt-3.5-turbo/completions");
-
-    //sprintf(api_url, "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=%s", token);
-
     curl_easy_setopt(curl, CURLOPT_URL, "https://europe-southwest1-aiplatform.googleapis.com/v1/projects/talkyterminal/locations/europe-southwest1/publishers/google/models/gemini-1.0-pro-001:streamGenerateContent");
+    
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
     result = curl_easy_perform(curl);
-
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
     if(result != CURLE_OK){
         fprintf(stderr, "Error: %s\n", curl_easy_strerror(result));
         perror("Curl:");
     }else{
-
     //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
 
     const char* json_string = chunk.memory;
     json_error_t error;
     json_t *root;
     char *res = malloc(2048*8+1); //+1 for null terminator
+
     if (res == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         return;
@@ -679,7 +705,6 @@ void chat(char *args) {
         json_decref(root);
         return;
     }
-
     // Iterate through the array
     for (size_t i = 0; i < json_array_size(root); i++) {
         json_t *item = json_array_get(root, i);
@@ -717,12 +742,13 @@ void chat(char *args) {
     json_decref(root);
     printf("%s\n",res);
     }
-    
+
     free(chunk.memory);
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
+
     post_fields[0] = '\0';
     buffer[0] = '\0';
+    printf("8\n");
+    
 }
 
 
