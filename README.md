@@ -13,3 +13,7 @@ instalar as bibliotecas:
 - jannson - sudo apt-get install libjansson-dev
 
 na pasta "src" executar no terminal "make shell" e "./Talky"
+
+executar "help" para lista de comandos
+
+os ficheiros hai.txt e hello.c serve para testar a função compile
