@@ -7,6 +7,9 @@
 %%
 
 quit             return FIM;
+help        { yylval.comval =malloc(yyleng+1); 
+                            strcpy(yylval.comval, yytext); 
+                            return HELP;}
 cd          { yylval.comval =malloc(yyleng+1); 
                             strcpy(yylval.comval, yytext); 
                             return CD;}

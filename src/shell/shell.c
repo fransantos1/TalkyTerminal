@@ -30,12 +30,19 @@ void life(char *args) {
     char *ptr = strtok(args, " ");
     while (ptr != NULL) {
         if (strcmp(ptr, "--help") == 0) {
-            printf("\033[33mConway's Game of Life\n");
-            printf("\033[31mRules:\033[0m\n-Any live cell with fewer than two live neighbors dies, as if by underpopulation.\n");
-            printf("-Any live cell with two or three live neighbors lives on to the next generation.\n");
-            printf("-Any live cell with more than three live neighbors dies, as if by overpopulation.\n");
-            printf("-Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.\n");
-            printf("\033[31mHow to play:\033[0m\n-mouse to place a cell\n-double click to remove\n-start with enter\n-press 'q' whenever to leave the game \033[0m\n");
+            printf("\n");
+            printf("    \033[33mConway's Game of Life\033[0m\n");
+            printf("      is a zero-player game where cells on a grid evolve based on simple rules involving their neighbors' states.\n\n");
+            printf("        \033[31mRules:\033[0m\n");
+            printf("            -Any live cell with fewer than two live neighbors dies, as if by underpopulation.\n");
+            printf("            -Any live cell with two or three live neighbors lives on to the next generation.\n");
+            printf("            -Any live cell with more than three live neighbors dies, as if by overpopulation.\n");
+            printf("            -Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.\n\n");
+            printf("        \033[33mHow to play:\033[0m\n");
+            printf("            -mouse to place a cell\n");
+            printf("            -double click to remove\n");
+            printf("            -start with enter\n");
+            printf("            -press 'q' whenever to leave the game \033[0m\n\n");
             return;
         } else {
             printf("Invalid argument");
@@ -189,33 +196,6 @@ void shell_clear(char *args){
         perror("clear");
     }
 }
-float sleepTime = 500; //in microseconds 1ms = 1000us
-void test(){
-    int x = 10;
-    int y = 10;
-    int animation[x][y];
-    int counter=0;
-    for(int i = 1; i<=11;i++){    
-        for (int l = 0; l<10;l++ ){
-            for(int j = 0;j<10;j++){
-                animation[l][j]=counter;
-                printf("[%d]",animation[l][j]);
-                fflush(stdout);
-                usleep(sleepTime);
-            }
-            printf("\n");
-        }
-        if(i != 11){
-            for(int m = 0; m<10;m++){
-            printf("\033[A");
-            }
-        }
-        
-        counter = i;
-    }
-    printf("\n");
-    return;
-}
 //pwd: Print working directory.
 void pwd(){
 	char cwd[1024];
@@ -329,7 +309,13 @@ void talky(char *args) {
     char *ptr = strtok(args, " ");
     while (ptr != NULL) {
         if (strcmp(ptr, "--help") == 0) {
-            printf("n\033[31mtalky  [arg]\ntalky  -s      host\ntalky  -c      connect\033[0m\n");
+            printf("\n");
+            printf("    \033[33mTalky\033[0m\n");
+            printf("      is a peer to peer chat room, where you either connect or create your chat, and other people join, with your ip.\n\n");
+            printf("        \033[31mtalky  [arg]\033[0m\n");
+            printf("        talky  -s   \033[33mServer\033[0m\n");
+            printf("        talky  -c   \033[33mClient\033[0m\n");
+            printf("\n");
             return;
         } else if (ptr[0] == '-') {
             if (strcmp(ptr, "-s") == 0) {
@@ -387,7 +373,14 @@ void compile(char *args) {
     int option = -1; //0 List, 1 Compile, 2 Execute
     while (ptr != NULL) {
         if (strcmp(ptr, "--help") == 0) {
-            printf("Help requested:\n\033[0mcompile  -l [filename]        List\ncompile -c [filename]        Compile\ncompile -e [filename]        Execute\033[0m\n");
+            printf("\n");
+            printf("    \033[33mCompile\033[0m\n");
+            printf("      is a tool that lets you compile/run or just identify a file.\n\n");
+            printf("        \033[31mcompile [arg] [filename]\033[0m\n");
+            printf("        compile -l filename  \033[33mList\033[0m\n");
+            printf("        compile -c filename  \033[33mCompile\033[0m\n");
+            printf("        compile -e filename  \033[33mCompile and Execute\033[0m\n");
+            printf("\n");
             return;
         } else if (ptr[0] == '-') {
             if (strcmp(ptr, "-l") == 0) {
@@ -607,7 +600,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 }
 
 void chat(char *args) {
-     CURL *curl;
+    CURL *curl;
     CURLcode result;
     //const char *token = getenv("access_token");
     const char *token="ya29.a0AXooCgu9sfDA2TNFZQwOvH_C-DNh43RtEhpZVuTDhsfC0dO0A13UdxzJa5uDuBeqcWmorub9tKB0i-1VLLTt2K5lANAH7U0wKmSzd2B5Hsej0trJ5z0uyef5fuymdrbuJbwBcjMwhykYaS5hi9agKsiDenjES4eDipsaCgYKAVgSARISFQHGX2MikxhBIF8gal2Ghu8tw3ZggA0170";
@@ -733,39 +726,37 @@ void func(char *args){
             printf("invalid expression\n");
             return;
         }
+        printf("\n");
+        printf("    \033[33m\"=\"\033[0m\n");
+        printf("      is a graph visualization tool.\n\n");
+        printf("        \033[31m=[number]\033[0m\n");
+        printf("            1- \033[33msin(x)\033[0m\n");
+        printf("            2- \033[33mcos(x)\033[0m\n");
+        printf("            3- \033[33mtan(x)\033[0m\n");
+        printf("            4- \033[33m2x\033[0m\n");
+        printf("            5- \033[33mx^2 - 4x + 4\033[0m\n");
+        printf("            6- \033[33mx^3 - 3x^2 + 2\033[0m\n");
+        printf("            7- \033[33me^x\033[0m\n");
+        printf("            8- \033[33m|x|\033[0m\n");
+        printf("\n");
 
-        printf("Usage:\n \"=[number]\"\n");
-        printf("1- \033[33msin(x)\033[0m\n");
-        printf("2- \033[33mcos(x)\033[0m\n");
-        printf("3- \033[33mtan(x)\033[0m\n");
-        printf("4- \033[33m2x\033[0m\n");
-        printf("5-\033[33mx^2 - 4x + 4\033[0m\n");
-        printf("6-\033[33mx^3 - 3x^2 + 2\033[0m\n");
-        printf("7-\033[33me^x\033[0m\n");
-        printf("8-\033[33m|x - 2|\033[0m\n");
+
         return;
-    
-        
     }
     option = atoi(args);
     if(option ==0){
         printf("Invalid function send only \"= --help\". for equations\n");
         return;
     }
-
-    refresh();
     MEVENT event;
     int height, width;
     initscr();                  // Initialize the window
     cbreak();                   // Line buffering disabled
     noecho();                   // Don't echo input
     curs_set(0);                // Hide the cursor
-    nodelay(stdscr, FALSE); 
+    clear();
     getmaxyx(stdscr, height, width);
-    int div = height/4;
-    clear();  // Clear the screen at the beginning
     int counter =0;
-    int numCounter = 1;
     for(int i = 0; i < height; i++) {
         mvprintw(i, width / 2, "|");
     }
@@ -773,11 +764,11 @@ void func(char *args){
         mvprintw(height / 2, j, "-");
     }
     for (int x = 0; x < width; x++) {
-        double newx = (double)(x - width / 2) * 4.0 * 3.14159265 / width;
+        double newx = (double)((x - width / 2) * 4.0 * 3.14159265 / width);
         double y;
         switch (option) {
             case 1: 
-                y =  sin(newx +counter);
+                y =  sin(newx);
                 break;
             case 2: 
                 y = cos(newx);
@@ -798,21 +789,17 @@ void func(char *args){
                 y = exp(newx) ;
                 break;
             case 8: 
-                y = fabs(newx - 2);
+                y = fabs(newx);
                 break;
         }
-        //y = (int)(height / 2 - (cos(newx) * height / 4.0));
-        
         int real_y = (int)(height / 2 - (y * height / 4.0));
         if (real_y >= 0 && real_y < height) {
             mvprintw(real_y, x, "*");
+            usleep(1000);
             refresh();
-            usleep(8500);// "visually appealing"
         }
-
     }
-    refresh();
-    while (getch() != 'q') {}
+    while(getch() != 'q'){}
     refresh();
     signal(SIGWINCH, SIG_IGN);
     endwin(); 

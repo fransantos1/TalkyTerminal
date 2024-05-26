@@ -21,14 +21,13 @@ void printcwd(){
 	}
 }
 
-// char[] commandlist[] = {
-// 	"cd", "clear", "ls", "pwd", "mkdir", "touch", "echo", "compile", "talky", "life", "cp", "chat","mv", "rm"
-// }
-
+char *commandlist[] = {
+		"compile", "talky", "life","chat", "="};
+size_t commandLength = 0;
 %}
 
 %start programa
-%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP LIFE CHAT MV RM CALC
+%token <comval> FIM CD CLEAR LS PWD MKDIR TOUCH ECHO COMPILE TALKY CP LIFE CHAT MV RM CALC HELP
 %token <str> ARGS 
 %type <str> argument
 %type <comval> command
@@ -51,6 +50,14 @@ linha: 	'\n'
 
 command: CD argument
 			{cd($2);}
+		| HELP 
+			{
+				printf("\n     Commands implemented in TalkyTerminal, with their help command: \n");
+				for(size_t i =0 ; i < commandLength ; i++ ){
+					printf("	\033[0;33m%s \033[0;32m--help\033[0;0m\n",commandlist[i]);
+				}
+				printf("\n");
+			}
 		| CLEAR argument
 			{shell_clear($2);}
 		| LS argument
@@ -100,6 +107,8 @@ int yyerror(char* s){
 }
 
 int main(){
+
+	commandLength =  sizeof(commandlist) / sizeof(commandlist[0]);;
 	printf("\033[0;35m////////////////////////////////////////////////////////////////////////////////////////////\n");
 	printf("////////////////////////////////////////////////////////////////////////////////////////////\n");
 	printf("///////////////////////////////// \033[0;33mWELCOME TO TalkyTerminal\033[0;35m /////////////////////////////////\n");
