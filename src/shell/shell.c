@@ -389,6 +389,8 @@ void compile(char *args) {
                 option = 1;
             } else if (strcmp(ptr, "-e") == 0) {
                 option = 2;
+            } else if (strcmp(ptr, "-ai") == 0) {
+                option = 3;
             } else {
                 printf("Parameter '%s' not recognized\n", ptr);
                 return;
@@ -425,7 +427,7 @@ void compile(char *args) {
     char command[MAX_COMMAND_LEN];
     int result = 0;
     char full_filename[1024]; 
-
+    char text [4080];
 
     if (!strlen(extension)) {
         dir = opendir(".");
@@ -530,6 +532,15 @@ void compile(char *args) {
             strcat(full_filename, fileTypes[j].extension);
             strcat(full_filename, "\n");
             printf(full_filename);
+            return;
+        }
+        if(option == 3){
+            strcat(full_filename, ".");
+            strcat(full_filename, extension_list[0]);
+            strcpy(text, "Can you tell me the extension of the file ");
+            strcat(text, full_filename);
+            strcat(text, "and what type of file it is?");
+            chat(text);
             return;
         }
         if(fileTypes[j].compile == ""){
