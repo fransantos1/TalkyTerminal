@@ -83,7 +83,7 @@ command: CD argument
 		| CHAT argument
 			{chat($2); }
 		| CALC
-			{calc($1);}
+			{func($1);}
         ;
 
 argument: ARGS 	

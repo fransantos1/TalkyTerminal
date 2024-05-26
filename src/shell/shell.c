@@ -606,21 +606,11 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
   return realsize;
 }
 
-void chat(char *args){
-    char *ptr = strtok(args, " ");
-    if (strcmp(ptr, "--help") == 0) {
-        printf("Help requested:\n\033[0mnot Done yet\033[0m\n");
-        return;
-    } else if (ptr[0] == '-') {
-        printf("Parameter '%s' not recognized\n", ptr);
-        return;
-    }
-
-    CURL *curl;
+void chat(char *args) {
+     CURL *curl;
     CURLcode result;
-    int maxTokens = 2048;
     //const char *token = getenv("access_token");
-    const char *token = "";
+    const char *token="ya29.a0AXooCgu9sfDA2TNFZQwOvH_C-DNh43RtEhpZVuTDhsfC0dO0A13UdxzJa5uDuBeqcWmorub9tKB0i-1VLLTt2K5lANAH7U0wKmSzd2B5Hsej0trJ5z0uyef5fuymdrbuJbwBcjMwhykYaS5hi9agKsiDenjES4eDipsaCgYKAVgSARISFQHGX2MikxhBIF8gal2Ghu8tw3ZggA0170";
     char buffer[MAX_COMMAND_LEN];
     char post_fields[MAX_COMMAND_LEN];
     char api_url[MAX_COMMAND_LEN];
@@ -636,12 +626,18 @@ void chat(char *args){
         perror("HTTP request failed");
     }
     struct curl_slist *headers = NULL;
-
+    
     headers = curl_slist_append(headers, "Content-Type: application/json");
     sprintf(buffer, "Authorization: Bearer %s",token);
     headers = curl_slist_append(headers, buffer);
 
-    sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": %d,\"temperature\": 0.9,\"topP\": 1,}}", args, maxTokens);
+    sprintf(post_fields, "{\"contents\": [{\"role\": \"user\",\"parts\": [{\"text\": \"%s\"},]},],\"generationConfig\": {\"maxOutputTokens\": 2048,\"temperature\": 0.9,\"topP\": 1,}}", args);
+
+    //para chatgpt
+    //"{\"prompt\": \"%s\", \"max_tokens\": 60}"
+    //curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/engines/gpt-3.5-turbo/completions");
+
+    //sprintf(api_url, "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=%s", token);
 
     curl_easy_setopt(curl, CURLOPT_URL, "https://europe-southwest1-aiplatform.googleapis.com/v1/projects/talkyterminal/locations/europe-southwest1/publishers/google/models/gemini-1.0-pro-001:streamGenerateContent");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -656,14 +652,14 @@ void chat(char *args){
     if(result != CURLE_OK){
         fprintf(stderr, "Error: %s\n", curl_easy_strerror(result));
         perror("Curl:");
-        return;
-    }
+    }else{
+
     //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
+
     const char* json_string = chunk.memory;
     json_error_t error;
     json_t *root;
-    size_t index;
-    char *res = malloc(maxTokens*8+1); //+1 for null terminator
+    char *res = malloc(2048*8+1); //+1 for null terminator
     if (res == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         return;
@@ -714,10 +710,10 @@ void chat(char *args){
         json_decref(item);
         json_decref(candidates);
     }
-
     json_decref(root);
     printf("%s\n",res);
-    free(res);
+    }
+    
     free(chunk.memory);
     curl_easy_cleanup(curl);
     curl_global_cleanup();
@@ -728,8 +724,98 @@ void chat(char *args){
 
 
 
-void calc(char *args){
+void func(char *args){
+    args = args + 1; // Removing the "="
+    int option = -0; // 1 -sin, 2-cos, 3-tan
+    if(args[0] == ' '){
+        char *ptr = strtok(args, " ");
+        if(ptr == NULL || strcmp(ptr, "--help") != 0){
+            printf("invalid expression\n");
+            return;
+        }
 
+        printf("Usage:\n \"=[number]\"\n");
+        printf("1- \033[33msin(x)\033[0m\n");
+        printf("2- \033[33mcos(x)\033[0m\n");
+        printf("3- \033[33mtan(x)\033[0m\n");
+        printf("4- \033[33m2x\033[0m\n");
+        printf("5-\033[33mx^2 - 4x + 4\033[0m\n");
+        printf("6-\033[33mx^3 - 3x^2 + 2\033[0m\n");
+        printf("7-\033[33me^x\033[0m\n");
+        printf("8-\033[33m|x - 2|\033[0m\n");
+        return;
+    
+        
+    }
+    option = atoi(args);
+    if(option ==0){
+        printf("Invalid function send only \"= --help\". for equations\n");
+        return;
+    }
+
+    refresh();
+    MEVENT event;
+    int height, width;
+    initscr();                  // Initialize the window
+    cbreak();                   // Line buffering disabled
+    noecho();                   // Don't echo input
+    curs_set(0);                // Hide the cursor
+    nodelay(stdscr, FALSE); 
+    getmaxyx(stdscr, height, width);
+    int div = height/4;
+    clear();  // Clear the screen at the beginning
+    int counter =0;
+    int numCounter = 1;
+    for(int i = 0; i < height; i++) {
+        mvprintw(i, width / 2, "|");
+    }
+    for(int j = 0; j < width; j++) {
+        mvprintw(height / 2, j, "-");
+    }
+    for (int x = 0; x < width; x++) {
+        double newx = (double)(x - width / 2) * 4.0 * 3.14159265 / width;
+        double y;
+        switch (option) {
+            case 1: 
+                y =  sin(newx +counter);
+                break;
+            case 2: 
+                y = cos(newx);
+                break;
+            case 3: 
+                y = tan(newx);
+                break;
+            case 4: 
+                y = (2 * newx) ;
+                break;
+            case 5:
+                y = pow(newx,2) ;
+                break;
+            case 6:
+                y = pow(newx,3)- 3 * pow(newx,2) + 2;
+                break;
+            case 7:
+                y = exp(newx) ;
+                break;
+            case 8: 
+                y = fabs(newx - 2);
+                break;
+        }
+        //y = (int)(height / 2 - (cos(newx) * height / 4.0));
+        
+        int real_y = (int)(height / 2 - (y * height / 4.0));
+        if (real_y >= 0 && real_y < height) {
+            mvprintw(real_y, x, "*");
+            refresh();
+            usleep(8500);// "visually appealing"
+        }
+
+    }
+    refresh();
+    while (getch() != 'q') {}
+    refresh();
+    signal(SIGWINCH, SIG_IGN);
+    endwin(); 
 
 
 }
