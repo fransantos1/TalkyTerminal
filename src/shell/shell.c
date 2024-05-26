@@ -647,11 +647,12 @@ void chat(char *args) {
 
     CURLcode result;
     //const char *token = getenv("access_token");
-    const char *token="";
+    const char *token="ya29.a0AXooCgs0QR53pfYzGy0nWUWA5sz26LghZQRlRH-BmS_5RZpOMr2GteitMdD6ekc7e_28Kteke5uqSWNtnG_5xPOHP9HoYZnxvBsnItEBpzt6Q46YQIzYLALA2gDO1ObTttGutmbt_p3bs-OAFSDvmdtfOPAJvtOxfOYaCgYKAQ4SARISFQHGX2MiWPRDPovFY27XMNTqC4wAmw0170";
     char buffer[MAX_COMMAND_LEN];
     char post_fields[MAX_COMMAND_LEN];
     struct MemoryStruct chunk;
     chunk.memory = malloc(1);
+    chunk.memory[0] = '\0';
     chunk.size = 0;
     curl_global_init(CURL_GLOBAL_ALL);
     CURL *curl = curl_easy_init();
@@ -677,12 +678,12 @@ void chat(char *args) {
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
     result = curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
-    curl_slist_free_all(headers);
     if(result != CURLE_OK){
         fprintf(stderr, "Error: %s\n", curl_easy_strerror(result));
         perror("Curl:");
     }else{
+  
+        
     //https://forkful.ai/pt/c/data-formats-and-serialization/working-with-json/
 
     const char* json_string = chunk.memory;
@@ -698,6 +699,11 @@ void chat(char *args) {
     root = json_loads(json_string, 0, &error);
     if (!root) {
         fprintf(stderr, "Error parsing JSON: %s\n", error.text);
+        curl_global_cleanup();
+        if (chunk.memory != NULL) {
+            free(chunk.memory);
+        }
+        free(res); 
         return;
     }
 
@@ -741,13 +747,16 @@ void chat(char *args) {
     }
     json_decref(root);
     printf("%s\n",res);
+    free(res);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
     }
-
-    free(chunk.memory);
-
+    if (chunk.memory != NULL) {
+        free(chunk.memory);
+    }
     post_fields[0] = '\0';
     buffer[0] = '\0';
-    printf("8\n");
+    curl_global_cleanup();
     
 }
 
