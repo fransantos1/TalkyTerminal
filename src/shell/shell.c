@@ -814,6 +814,4 @@ void func(char *args){
     refresh();
     signal(SIGWINCH, SIG_IGN);
     endwin(); 
-
-
 }

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
-#include <sys/select.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h> 
@@ -31,7 +30,6 @@
 // send chat messages history
 
 // todo more pleasent terminal interface(ncursors)
-// todo final review
 // todo send files
 // todo kick/ban users
 // todo encryption keys, public/private keys
@@ -290,7 +288,6 @@ void *AcceptConn(void *args){
             msg.type = 1;
             threadArgs[availableIndex].status = 1;
             if(isPrivate == 1){
-                printf("private\n");
                 threadArgs[availableIndex].status = 0;
                 msg.type = 0;
             }
